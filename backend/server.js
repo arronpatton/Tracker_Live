@@ -10,8 +10,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
-// ✅ Use /data for Render persistent disk
-const DATA_DIR = '/data';
+// ✅ Use /data for Render persistent disk, fallback to local ./data
+const DATA_DIR = fs.existsSync('/data') ? '/data' : path.join(__dirname, '..', 'data');
 const DATA_FILE = path.join(DATA_DIR, "data.json");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 
@@ -342,7 +342,7 @@ app.get("/api/admin/recovery", (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
+  console.log(`✅ Data directory: ${DATA_DIR}`);
   console.log(`✅ Data file: ${DATA_FILE}`);
   console.log(`✅ Users file: ${USERS_FILE}`);
 });
-
