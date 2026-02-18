@@ -908,6 +908,15 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   
   render();
+
+  // Auto-refresh data every 10 minutes (keeps TV displays up to date)
+  setInterval(async function() {
+    var refreshed = await loadFromServer();
+    if (refreshed) {
+      render();
+      console.log("Auto-refresh: data updated at " + new Date().toLocaleTimeString());
+    }
+  }, 10 * 60 * 1000);
 });
 
   /* ===================== DATE / TIMELINE ===================== */
