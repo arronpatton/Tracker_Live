@@ -36,8 +36,7 @@
   <iframe id="extFrame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
   <div id="countdown-bar"></div>
   <div id="manualControls">
-    <button id="btnBounceSwitch">&#8646; Switch to Tracker</button>
-    <button id="btnBounceStop">&#9632; Stop</button>
+    <button id="btnBounceSwitch">&#8592; Back to Tracker</button>
   </div>
 
   <script>
@@ -71,15 +70,6 @@
       document.getElementById('manualControls').style.display = 'block';
 
       document.getElementById('btnBounceSwitch').onclick = function() {
-        if (returnUrl) window.location.href = returnUrl;
-      };
-
-      document.getElementById('btnBounceStop').onclick = function() {
-        try {
-          localStorage.removeItem('tvRotationActive');
-          localStorage.removeItem('tvReturnTo');
-          localStorage.removeItem('tvManualMode');
-        } catch(e) {}
         if (returnUrl) window.location.href = returnUrl;
       };
     } else {

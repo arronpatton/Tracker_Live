@@ -456,12 +456,13 @@ body {
 
   <!-- TV Display Dropdown -->
   <div id="tvDropdownContainer" style="position:relative; display:inline-block;">
-    <select id="tvPageSelect" style="padding:0.4rem 0.6rem; font-size:var(--fs-14); font-weight:bold; border:1px solid var(--border); border-radius:var(--radius-sm); background:#ffffff; color:#000; cursor:pointer; min-width:160px; outline:none;">
-      <option value="home" selected>&#127968; Tracker Home</option>
-    </select>
+    <button id="tvDropdownBtn" style="padding:0.4rem 0.8rem; font-size:var(--fs-14); font-weight:bold; background:#ffffff; color:#000; border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; min-width:180px; text-align:left; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+      <span id="tvDropdownLabel">&#127968; Tracker Home</span>
+      <span style="font-size:0.6rem;">&#9660;</span>
+    </button>
+    <div id="tvDropdownMenu" style="display:none; position:absolute; top:100%; left:0; min-width:250px; background:#ffffff; border:1px solid var(--border); border-radius:var(--radius-sm); box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:3000; max-height:300px; overflow-y:auto; margin-top:2px;"></div>
   </div>
   <button id="btnTVAddNew" aria-label="Add Display URL" title="Add a new display URL" style="padding:0.4rem 0.6rem; font-size:var(--fs-14);">+</button>
-  <button id="btnTVRemove" aria-label="Remove Selected URL" title="Remove selected URL" style="padding:0.4rem 0.6rem; font-size:var(--fs-14); background:var(--danger); display:none;">&#10005;</button>
 
   <button id="btnLogin" aria-label="Login">Login</button>
 <button id="btnEditUser" style="display:none;" aria-label="Edit Users">Edit User</button>
@@ -635,9 +636,10 @@ body {
 </div>
 
 <script>
-// ===================== TV PAGE SWITCHER (DROPDOWN) ===================== //
+// ===================== TV PAGE SWITCHER (CUSTOM DROPDOWN) ===================== //
 (function() {
   var TV_STORAGE_KEY = 'tvDisplayUrls';
+  var dropdownOpen = false;
 
   function loadUrls() {
     try {
@@ -658,89 +660,89 @@ body {
     return input;
   }
 
-  function renderDropdown() {
-    var select = document.getElementById('tvPageSelect');
-    if (!select) return;
+  function toggleDropdown() {
+    var menu = document.getElementById('tvDropdownMenu');
+    if (!menu) return;
+    dropdownOpen = !dropdownOpen;
+    menu.style.display = dropdownOpen ? 'block' : 'none';
+    if (dropdownOpen) renderDropdownMenu();
+  }
 
-    // Remember current selection
-    var currentVal = select.value;
+  function closeDropdown() {
+    var menu = document.getElementById('tvDropdownMenu');
+    if (menu) menu.style.display = 'none';
+    dropdownOpen = false;
+  }
 
-    // Clear all except the first option (Tracker Home)
-    while (select.options.length > 1) {
-      select.remove(1);
-    }
+  function renderDropdownMenu() {
+    var menu = document.getElementById('tvDropdownMenu');
+    if (!menu) return;
 
-    // Add saved URLs
     var urls = loadUrls();
+    var html = '';
+
+    // Tracker Home option
+    html += '<div style="display:flex; align-items:center; padding:0.5rem 0.75rem; cursor:pointer; border-bottom:1px solid #eee;" ' +
+      'onmouseover="this.style.background=\'#f0f0f0\'" onmouseout="this.style.background=\'#fff\'" ' +
+      'onclick="tvSelectHome()">' +
+      '<span style="flex:1; font-size:0.85rem; color:#000;">&#127968; Tracker Home</span>' +
+    '</div>';
+
+    // Saved URLs
     urls.forEach(function(item, i) {
-      var opt = document.createElement('option');
-      opt.value = 'url:' + i;
-      opt.textContent = item.name || ('Page ' + (i + 1));
-      select.appendChild(opt);
+      html += '<div style="display:flex; align-items:center; padding:0.4rem 0.75rem; cursor:pointer; border-bottom:1px solid #eee;" ' +
+        'onmouseover="this.style.background=\'#f0f0f0\'" onmouseout="this.style.background=\'#fff\'">' +
+        '<span style="flex:1; font-size:0.85rem; color:#000; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" ' +
+          'onclick="tvSelectUrl(' + i + ')" title="' + item.url + '">' + (item.name || 'Page ' + (i + 1)) + '</span>' +
+        '<span onclick="event.stopPropagation(); tvDeleteUrl(' + i + ')" ' +
+          'style="color:#dc3545; font-weight:bold; font-size:1rem; cursor:pointer; padding:0 0.25rem 0 0.5rem; line-height:1;" ' +
+          'title="Delete">&times;</span>' +
+      '</div>';
     });
 
-    // Restore selection if still valid
-    for (var j = 0; j < select.options.length; j++) {
-      if (select.options[j].value === currentVal) {
-        select.value = currentVal;
-        break;
-      }
+    if (urls.length === 0) {
+      html += '<div style="padding:0.5rem 0.75rem; font-size:0.8rem; color:#888; text-align:center;">No saved URLs. Click + to add one.</div>';
     }
 
-    // Show/hide delete button
-    updateDeleteButton();
+    menu.innerHTML = html;
   }
 
-  function updateDeleteButton() {
-    var select = document.getElementById('tvPageSelect');
-    var btnRemove = document.getElementById('btnTVRemove');
-    if (!select || !btnRemove) return;
-    btnRemove.style.display = (select.value !== 'home') ? 'inline-block' : 'none';
-  }
+  // Global functions for inline onclick
+  window.tvSelectHome = function() {
+    document.getElementById('tvDropdownLabel').innerHTML = '&#127968; Tracker Home';
+    closeDropdown();
+    // Already on tracker, do nothing
+  };
 
-  function navigateToSelection() {
-    var select = document.getElementById('tvPageSelect');
-    if (!select) return;
-    var val = select.value;
-
-    if (val === 'home') {
-      // Already on home — do nothing (or could reload)
-      return;
-    }
-
-    // Parse index from "url:N"
-    var idx = parseInt(val.replace('url:', ''));
+  window.tvSelectUrl = function(index) {
     var urls = loadUrls();
-    if (!urls[idx]) return;
+    if (!urls[index]) return;
+
+    document.getElementById('tvDropdownLabel').textContent = urls[index].name || 'Page ' + (index + 1);
+    closeDropdown();
 
     // Navigate to bounce page
     var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
     var returnUrl = window.location.href.split('#')[0];
-    bounceUrl += '#url=' + encodeURIComponent(urls[idx].url) + '&mode=manual&return=' + encodeURIComponent(returnUrl);
+    bounceUrl += '#url=' + encodeURIComponent(urls[index].url) + '&mode=manual&return=' + encodeURIComponent(returnUrl);
     window.location.href = bounceUrl;
-  }
+  };
 
-  function removeSelected() {
-    var select = document.getElementById('tvPageSelect');
-    if (!select || select.value === 'home') return;
-
-    var idx = parseInt(select.value.replace('url:', ''));
+  window.tvDeleteUrl = function(index) {
     var urls = loadUrls();
-    if (!urls[idx]) return;
-
-    if (!confirm('Remove "' + (urls[idx].name || urls[idx].url) + '" from the list?')) return;
-
-    urls.splice(idx, 1);
+    if (!urls[index]) return;
+    if (!confirm('Remove "' + (urls[index].name || urls[index].url) + '"?')) return;
+    urls.splice(index, 1);
     saveUrls(urls);
-    select.value = 'home';
-    renderDropdown();
-  }
+    renderDropdownMenu();
+  };
 
   function openAddModal() {
     document.getElementById('tvNewUrlName').value = '';
     document.getElementById('tvNewUrlInput').value = '';
     var hint = document.getElementById('tvNewUrlHint');
     if (hint) hint.textContent = '';
+    closeDropdown();
 
     if (typeof openModal === 'function') openModal('tvAddUrlModal');
     else document.getElementById('tvAddUrlModal').style.display = 'flex';
@@ -763,35 +765,27 @@ body {
     var urls = loadUrls();
     urls.push({ name: name, url: url });
     saveUrls(urls);
-
     closeAddModal();
-    renderDropdown();
-
-    // Select the newly added item
-    var select = document.getElementById('tvPageSelect');
-    if (select) {
-      select.value = 'url:' + (urls.length - 1);
-      updateDeleteButton();
-    }
   }
 
   // Wire up
   document.addEventListener('DOMContentLoaded', function() {
-    renderDropdown();
+    var btnDropdown = document.getElementById('tvDropdownBtn');
+    if (btnDropdown) btnDropdown.onclick = function(e) {
+      e.stopPropagation();
+      toggleDropdown();
+    };
 
-    var select = document.getElementById('tvPageSelect');
-    if (select) {
-      select.addEventListener('change', function() {
-        updateDeleteButton();
-        navigateToSelection();
-      });
-    }
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      var container = document.getElementById('tvDropdownContainer');
+      if (container && !container.contains(e.target)) {
+        closeDropdown();
+      }
+    });
 
     var btnAdd = document.getElementById('btnTVAddNew');
     if (btnAdd) btnAdd.onclick = openAddModal;
-
-    var btnRemove = document.getElementById('btnTVRemove');
-    if (btnRemove) btnRemove.onclick = removeSelected;
 
     var btnSave = document.getElementById('btnTVSaveUrl');
     if (btnSave) btnSave.onclick = saveNewUrl;
