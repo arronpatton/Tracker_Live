@@ -18,16 +18,29 @@
       color: #fff; font-family: Arial, sans-serif;
       font-size: 1.2rem;
     }
+    #manualControls {
+      display: none;
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+    }
+    #manualControls button {
+      padding: 12px 20px; font-size: 1rem; border: none; color: white;
+      font-weight: bold; cursor: pointer; border-radius: 50px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3); margin-left: 8px;
+    }
+    #btnBounceSwitch { background: #6f42c1; }
+    #btnBounceStop { background: #dc3545; }
   </style>
 </head>
 <body>
   <div id="loading">Loading external page...</div>
   <iframe id="extFrame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
   <div id="countdown-bar"></div>
+  <div id="manualControls">
+    <button id="btnBounceSwitch">&#8646; Switch to Tracker</button>
+    <button id="btnBounceStop">&#9632; Stop</button>
+  </div>
 
   <script>
-    // Read parameters from URL hash
-    // Format: tv-bounce.html#url=ENCODED_URL&duration=SECONDS&return=ENCODED_RETURN_URL
     var params = {};
     var hash = window.location.hash.substring(1);
     hash.split('&').forEach(function(part) {
@@ -40,6 +53,7 @@
     var extUrl = params.url || '';
     var duration = parseInt(params.duration) || 30;
     var returnUrl = params['return'] || '';
+    var mode = params.mode || 'auto';
 
     if (extUrl) {
       var frame = document.getElementById('extFrame');
@@ -47,25 +61,40 @@
       frame.onload = function() {
         document.getElementById('loading').style.display = 'none';
       };
-      // Hide loading after a timeout in case onload doesn't fire (cross-origin)
       setTimeout(function() {
         document.getElementById('loading').style.display = 'none';
       }, 3000);
     }
 
-    // Countdown bar animation
-    var bar = document.getElementById('countdown-bar');
-    bar.style.transition = 'none';
-    bar.style.width = '100%';
-    bar.offsetHeight;
-    bar.style.transition = 'width ' + duration + 's linear';
-    bar.style.width = '0%';
+    if (mode === 'manual') {
+      document.getElementById('countdown-bar').style.display = 'none';
+      document.getElementById('manualControls').style.display = 'block';
 
-    // Return to tracker after duration
-    if (returnUrl) {
-      setTimeout(function() {
-        window.location.href = returnUrl;
-      }, duration * 1000);
+      document.getElementById('btnBounceSwitch').onclick = function() {
+        if (returnUrl) window.location.href = returnUrl;
+      };
+
+      document.getElementById('btnBounceStop').onclick = function() {
+        try {
+          localStorage.removeItem('tvRotationActive');
+          localStorage.removeItem('tvReturnTo');
+          localStorage.removeItem('tvManualMode');
+        } catch(e) {}
+        if (returnUrl) window.location.href = returnUrl;
+      };
+    } else {
+      var bar = document.getElementById('countdown-bar');
+      bar.style.transition = 'none';
+      bar.style.width = '100%';
+      bar.offsetHeight;
+      bar.style.transition = 'width ' + duration + 's linear';
+      bar.style.width = '0%';
+
+      if (returnUrl) {
+        setTimeout(function() {
+          window.location.href = returnUrl;
+        }, duration * 1000);
+      }
     }
   </script>
 </body>

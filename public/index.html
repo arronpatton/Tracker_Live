@@ -637,7 +637,8 @@ body {
 
     <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
       <button id="btnTVStart" style="background: var(--success);">&#9654; Start Rotation</button>
-      <button id="btnTVStop" style="background: var(--danger); display: none;">&#9632; Stop Rotation</button>
+      <button id="btnTVManual" style="background: #6f42c1;">&#8646; Manual Switch</button>
+      <button id="btnTVStop" style="background: var(--danger); display: none;">&#9632; Stop</button>
       <button id="btnTVAddUrl">+ Save URL</button>
       <button id="btnTVClose">Close</button>
     </div>
@@ -647,14 +648,22 @@ body {
 <!-- TV countdown bar (shown at bottom during rotation) -->
 <div id="tvCountdownBar" style="display:none; position:fixed; bottom:0; left:0; height:4px; background:var(--accent); z-index:9999; width:100%;"></div>
 
+<!-- TV manual switch floating button (shown in manual mode) -->
+<div id="tvFloatingControls" style="display:none; position:fixed; bottom:20px; right:20px; z-index:9999; display:none;">
+  <button id="btnTVFloatingSwitch" style="background:#6f42c1; padding:12px 20px; font-size:1rem; border-radius:50px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">&#8646; Switch View</button>
+  <button id="btnTVFloatingStop" style="background:var(--danger); padding:12px 16px; font-size:1rem; border-radius:50px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">&#9632; Stop</button>
+</div>
+
 <script>
 // ===================== TV DISPLAY MODE (REDIRECT-BASED) ===================== //
 (function() {
   const TV_STORAGE_KEY = 'tvDisplaySettings';
   const TV_ACTIVE_KEY  = 'tvRotationActive';
   const TV_RETURN_KEY  = 'tvReturnTo';
+  const TV_MANUAL_KEY  = 'tvManualMode';
   let tvTimer = null;
   let tvActive = false;
+  let tvManual = false;
 
   function loadTVSettings() {
     try {
@@ -668,7 +677,6 @@ body {
     catch(e) {}
   }
 
-  // Auto-extract src from pasted iframe embed codes
   function extractUrl(input) {
     input = (input || '').trim();
     var match = input.match(/src\s*=\s*["']([^"']+)["']/i);
@@ -736,31 +744,19 @@ body {
     if (bar) { bar.style.display = 'none'; bar.style.transition = 'none'; bar.style.width = '0%'; }
   }
 
-  function startRotation() {
-    var rawInput = document.getElementById('tvUrlInput').value;
-    var url = extractUrl(rawInput);
-    var intervalTracker = parseInt(document.getElementById('tvIntervalTracker').value) || 30;
-    var intervalExternal = parseInt(document.getElementById('tvIntervalExternal').value) || 30;
+  function buildBounceUrl(url, intervalExternal, mode) {
+    var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
+    var returnUrl = window.location.href.split('#')[0];
+    bounceUrl += '#url=' + encodeURIComponent(url) + '&duration=' + intervalExternal + '&return=' + encodeURIComponent(returnUrl) + '&mode=' + mode;
+    return bounceUrl;
+  }
 
-    if (!url) { alert('Please enter a URL to rotate with.'); return; }
-
-    // Update the input with the clean URL
-    document.getElementById('tvUrlInput').value = url;
-
-    // Save settings
+  function saveUrlAndEnterFullscreen(url) {
     var settings = loadTVSettings();
-    settings.intervalTracker = intervalTracker;
-    settings.intervalExternal = intervalExternal;
     settings.lastUrl = url;
     saveTVSettings(settings);
 
-    // Mark rotation as active and store the return URL
-    localStorage.setItem(TV_ACTIVE_KEY, 'true');
-    localStorage.setItem(TV_RETURN_KEY, window.location.href);
-
-    tvActive = true;
-    document.getElementById('btnTVStart').style.display = 'none';
-    document.getElementById('btnTVStop').style.display = 'inline-block';
+    document.getElementById('tvUrlInput').value = url;
 
     // Close modal
     if (typeof closeModal === 'function') closeModal('tvDisplayModal');
@@ -769,46 +765,96 @@ body {
     // Hide top bar for full-screen
     document.getElementById('topBar').style.display = 'none';
     document.getElementById('trackerWrapper').style.height = '100vh';
+  }
 
-    // Show countdown then redirect to bounce page which shows external URL
+  // ===== AUTO ROTATION =====
+  function startRotation() {
+    var rawInput = document.getElementById('tvUrlInput').value;
+    var url = extractUrl(rawInput);
+    var intervalTracker = parseInt(document.getElementById('tvIntervalTracker').value) || 30;
+    var intervalExternal = parseInt(document.getElementById('tvIntervalExternal').value) || 30;
+
+    if (!url) { alert('Please enter a URL to rotate with.'); return; }
+
+    var settings = loadTVSettings();
+    settings.intervalTracker = intervalTracker;
+    settings.intervalExternal = intervalExternal;
+    saveTVSettings(settings);
+
+    localStorage.setItem(TV_ACTIVE_KEY, 'true');
+    localStorage.removeItem(TV_MANUAL_KEY);
+
+    tvActive = true;
+    tvManual = false;
+    document.getElementById('btnTVStart').style.display = 'none';
+    document.getElementById('btnTVManual').style.display = 'none';
+    document.getElementById('btnTVStop').style.display = 'inline-block';
+
+    saveUrlAndEnterFullscreen(url);
+
     startCountdownBar(intervalTracker);
     tvTimer = setTimeout(function() {
-      // Build bounce page URL with parameters
-      var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
-      var returnUrl = window.location.href.split('#')[0]; // clean return URL
-      bounceUrl += '#url=' + encodeURIComponent(url) + '&duration=' + intervalExternal + '&return=' + encodeURIComponent(returnUrl);
-      window.location.href = bounceUrl;
+      window.location.href = buildBounceUrl(url, intervalExternal, 'auto');
     }, intervalTracker * 1000);
   }
 
+  // ===== MANUAL SWITCH =====
+  function startManual() {
+    var rawInput = document.getElementById('tvUrlInput').value;
+    var url = extractUrl(rawInput);
+
+    if (!url) { alert('Please enter a URL to switch to.'); return; }
+
+    var settings = loadTVSettings();
+    saveTVSettings(settings);
+
+    localStorage.setItem(TV_ACTIVE_KEY, 'true');
+    localStorage.setItem(TV_MANUAL_KEY, 'true');
+
+    tvActive = true;
+    tvManual = true;
+
+    saveUrlAndEnterFullscreen(url);
+
+    // Show floating controls
+    document.getElementById('tvFloatingControls').style.display = 'block';
+  }
+
+  function manualSwitchToExternal() {
+    var settings = loadTVSettings();
+    if (!settings.lastUrl) return;
+    window.location.href = buildBounceUrl(settings.lastUrl, 0, 'manual');
+  }
+
+  // ===== STOP (works for both modes) =====
   function stopRotation() {
     tvActive = false;
+    tvManual = false;
     localStorage.removeItem(TV_ACTIVE_KEY);
     localStorage.removeItem(TV_RETURN_KEY);
+    localStorage.removeItem(TV_MANUAL_KEY);
 
     if (tvTimer) { clearTimeout(tvTimer); tvTimer = null; }
 
     document.getElementById('topBar').style.display = 'flex';
     document.getElementById('trackerWrapper').style.height = 'calc(100vh - 48px)';
     document.getElementById('btnTVStart').style.display = 'inline-block';
+    document.getElementById('btnTVManual').style.display = 'inline-block';
     document.getElementById('btnTVStop').style.display = 'none';
+    document.getElementById('tvFloatingControls').style.display = 'none';
     hideCountdownBar();
 
     var statusMsg = document.getElementById('tvStatusMsg');
-    if (statusMsg) { statusMsg.textContent = 'Rotation stopped.'; statusMsg.style.display = 'block'; setTimeout(function(){ statusMsg.style.display = 'none'; }, 2000); }
+    if (statusMsg) { statusMsg.textContent = 'Stopped.'; statusMsg.style.display = 'block'; setTimeout(function(){ statusMsg.style.display = 'none'; }, 2000); }
   }
 
-  // ===== ON PAGE LOAD: Check if we're returning from a redirect rotation =====
+  // ===== ON PAGE LOAD: Check if returning from bounce page =====
   function checkReturnFromRotation() {
     var isActive = localStorage.getItem(TV_ACTIVE_KEY);
     if (isActive !== 'true') return;
 
     var settings = loadTVSettings();
-    var returnUrl = localStorage.getItem(TV_RETURN_KEY);
-
-    // We're on the tracker page and rotation is active — we just returned from the external page
-    // OR this is the initial page load with rotation active
-    // Either way: hide the top bar and set up the next redirect cycle
+    var isManual = localStorage.getItem(TV_MANUAL_KEY) === 'true';
 
     tvActive = true;
 
@@ -816,19 +862,21 @@ body {
     document.getElementById('topBar').style.display = 'none';
     document.getElementById('trackerWrapper').style.height = '100vh';
 
-    // Show tracker for the tracker interval, then redirect to bounce page
-    startCountdownBar(settings.intervalTracker);
-    tvTimer = setTimeout(function() {
-      var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
-      var returnUrl = window.location.href.split('#')[0];
-      bounceUrl += '#url=' + encodeURIComponent(settings.lastUrl) + '&duration=' + settings.intervalExternal + '&return=' + encodeURIComponent(returnUrl);
-      window.location.href = bounceUrl;
-    }, settings.intervalTracker * 1000);
+    if (isManual) {
+      // Manual mode: show floating controls, no auto-redirect
+      tvManual = true;
+      document.getElementById('tvFloatingControls').style.display = 'block';
+    } else {
+      // Auto mode: countdown then redirect
+      startCountdownBar(settings.intervalTracker);
+      tvTimer = setTimeout(function() {
+        window.location.href = buildBounceUrl(settings.lastUrl, settings.intervalExternal, 'auto');
+      }, settings.intervalTracker * 1000);
+    }
   }
 
   // Wire up buttons
   document.addEventListener('DOMContentLoaded', function() {
-    // Handle iframe embed code paste — auto-extract URL
     var urlInput = document.getElementById('tvUrlInput');
     if (urlInput) {
       urlInput.addEventListener('paste', function(e) {
@@ -852,12 +900,14 @@ body {
       if (settings.lastUrl) document.getElementById('tvUrlInput').value = settings.lastUrl;
       renderSavedUrls();
       document.getElementById('btnTVStart').style.display = tvActive ? 'none' : 'inline-block';
+      document.getElementById('btnTVManual').style.display = tvActive ? 'none' : 'inline-block';
       document.getElementById('btnTVStop').style.display = tvActive ? 'inline-block' : 'none';
       if (typeof openModal === 'function') openModal('tvDisplayModal');
       else document.getElementById('tvDisplayModal').style.display = 'flex';
     };
 
     document.getElementById('btnTVStart').onclick = startRotation;
+    document.getElementById('btnTVManual').onclick = startManual;
     document.getElementById('btnTVStop').onclick = stopRotation;
     document.getElementById('btnTVAddUrl').onclick = addUrl;
     document.getElementById('btnTVClose').onclick = function() {
@@ -865,12 +915,16 @@ body {
       else document.getElementById('tvDisplayModal').style.display = 'none';
     };
 
+    // Floating controls
+    document.getElementById('btnTVFloatingSwitch').onclick = manualSwitchToExternal;
+    document.getElementById('btnTVFloatingStop').onclick = stopRotation;
+
     // ESC key stops rotation
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && tvActive) stopRotation();
     });
 
-    // Check if returning from external page rotation
+    // Check if returning from external page
     checkReturnFromRotation();
   });
 })();
