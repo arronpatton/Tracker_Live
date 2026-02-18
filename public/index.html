@@ -624,7 +624,7 @@ body {
     <!-- Tab toggle -->
     <div style="display:flex; gap:0; margin:0.75rem 5% 0.75rem; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden;">
       <button id="tabLink" onclick="tvShowTab('link')" style="flex:1; padding:0.4rem; font-size:var(--fs-12); font-weight:bold; border:none; cursor:pointer; background:var(--accent); color:white;">Link / URL</button>
-      <button id="tabFile" onclick="tvShowTab('file')" style="flex:1; padding:0.4rem; font-size:var(--fs-12); font-weight:bold; border:none; cursor:pointer; background:#f0f0f0; color:#333;">Upload File</button>
+      <button id="tabFile" onclick="tvShowTab('file')" style="flex:1; padding:0.4rem; font-size:var(--fs-12); font-weight:bold; border:none; cursor:pointer; background:#f0f0f0; color:#333;">Upload PDF</button>
     </div>
 
     <!-- Link tab -->
@@ -640,9 +640,8 @@ body {
     <div id="tvTabFile" style="display:none;">
       <label style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Display Name</label>
       <input type="text" id="tvFileDisplayName" placeholder="e.g. Org Chart" style="width:90%;" />
-      <label style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; margin-top:0.5rem; color:var(--text);">Select File (PDF, Excel, Word, or Image)</label>
-      <input type="file" id="tvFileInput" accept=".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg" style="width:90%; font-size:var(--fs-12); margin-top:0.25rem;" />
-      <p style="font-size:0.7rem; color:#888; padding-left:5%; margin:0.25rem 0 0; text-align:left;">Excel and Word files will be converted to PDF for display.</p>
+      <label style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; margin-top:0.5rem; color:var(--text);">Select PDF File</label>
+      <input type="file" id="tvFileInput" accept=".pdf" style="width:90%; font-size:var(--fs-12); margin-top:0.25rem;" />
       <div id="tvUploadProgress" style="display:none; padding:0.5rem 5%; font-size:0.8rem; color:var(--accent);">Uploading...</div>
     </div>
 

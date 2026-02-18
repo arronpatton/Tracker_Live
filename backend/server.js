@@ -3,7 +3,6 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const multer = require("multer");
-const { execSync } = require("child_process");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -395,65 +394,24 @@ const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
   fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.xlsx', '.xls', '.docx', '.doc', '.png', '.jpg', '.jpeg'];
+    const allowed = ['.pdf'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('File type not allowed. Supported: PDF, Excel, Word, PNG, JPG'));
+      cb(new Error('File type not allowed. Only PDF files are supported.'));
     }
   }
 });
 
-// Convert Office files to PDF using LibreOffice
-function convertToPdf(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  if (['.pdf', '.png', '.jpg', '.jpeg'].includes(ext)) {
-    return filePath; // Already displayable, no conversion needed
-  }
-
-  try {
-    // Use LibreOffice to convert to PDF
-    const outDir = path.dirname(filePath);
-    execSync(`libreoffice --headless --convert-to pdf --outdir "${outDir}" "${filePath}"`, {
-      timeout: 60000,
-      stdio: 'pipe'
-    });
-
-    // The output PDF has the same name but .pdf extension
-    const baseName = path.basename(filePath, ext);
-    const pdfPath = path.join(outDir, baseName + '.pdf');
-
-    if (fs.existsSync(pdfPath)) {
-      // Remove the original Office file
-      fs.unlinkSync(filePath);
-      return pdfPath;
-    } else {
-      console.error('PDF conversion failed: output file not found');
-      return filePath; // Return original if conversion fails
-    }
-  } catch (err) {
-    console.error('PDF conversion error:', err.message);
-    return filePath; // Return original if conversion fails
-  }
-}
-
-// Upload a file
+// Upload a file (PDF only, no conversion)
 app.post("/api/upload", upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
   const displayName = req.body.name || req.file.originalname;
-  let filePath = req.file.path;
-  const origExt = path.extname(req.file.originalname).toLowerCase();
-
-  // Convert Office files to PDF
-  if (['.xlsx', '.xls', '.docx', '.doc'].includes(origExt)) {
-    filePath = convertToPdf(filePath);
-  }
-
-  const fileName = path.basename(filePath);
+  const fileName = path.basename(req.file.path);
   const fileUrl = '/uploads/' + fileName;
 
   // Add to TV URLs list
