@@ -668,13 +668,17 @@ body {
 
   async function loadUrls() {
     try {
-      var res = await fetch('/api/tv-urls');
+      // Admins load draft TV URLs, users load published
+      var endpoint = (currentUser && currentUser.role === 'admin') ? '/api/tv-urls/draft' : '/api/tv-urls';
+      var res = await fetch(endpoint);
       if (res.ok) {
         tvUrls = await res.json();
       }
     } catch(e) { console.warn('Failed to load TV URLs:', e); }
     return tvUrls;
   }
+  // Expose globally so publish/discard can refresh
+  window.tvReloadUrls = loadUrls;
 
   async function saveUrls() {
     try {
@@ -683,6 +687,8 @@ body {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tvUrls)
       });
+      // Trigger draft status check
+      if (typeof checkDraftStatus === 'function') checkDraftStatus();
     } catch(e) { console.warn('Failed to save TV URLs:', e); }
   }
 
@@ -862,6 +868,8 @@ body {
         await loadUrls();
         document.getElementById('tvUploadProgress').style.display = 'none';
         closeAddModal();
+        // Trigger draft status check
+        if (typeof checkDraftStatus === 'function') checkDraftStatus();
 
       } catch(e) {
         alert('Upload failed: ' + e.message);
@@ -1000,6 +1008,7 @@ async function publishChanges() {
     const res = await fetch("/api/publish", { method: "POST" });
     if (!res.ok) throw new Error("Publish failed");
     console.log("✅ Changes published");
+    if (window.tvReloadUrls) await window.tvReloadUrls();
     hideDraftBanner();
     alert("Changes published! TVs will update on their next refresh.");
   } catch (e) {
@@ -1014,8 +1023,8 @@ async function discardChanges() {
     const res = await fetch("/api/discard", { method: "POST" });
     if (!res.ok) throw new Error("Discard failed");
     console.log("✅ Draft discarded");
-    // Reload the published data
     await loadFromServer();
+    if (window.tvReloadUrls) await window.tvReloadUrls();
     render();
     hideDraftBanner();
   } catch (e) {

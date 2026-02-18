@@ -116,22 +116,26 @@ app.post("/api/save", (req, res) => {
   res.json({ status: "ok", target: "draft" });
 });
 
-// POST publish: copy draft to published
+// POST publish: copy draft to published (data + TV URLs)
 app.post("/api/publish", (req, res) => {
   try {
     const draft = loadDraft();
     saveData(draft);
+    const draftUrls = loadTVUrlsDraft();
+    saveTVUrls(draftUrls);
     res.json({ status: "ok", message: "Published successfully" });
   } catch (err) {
     res.status(500).json({ error: "Publish failed: " + err.message });
   }
 });
 
-// POST discard: copy published back to draft
+// POST discard: copy published back to draft (data + TV URLs)
 app.post("/api/discard", (req, res) => {
   try {
     const published = loadData();
     saveDraft(published);
+    const publishedUrls = loadTVUrls();
+    saveTVUrlsDraft(publishedUrls);
     res.json({ status: "ok", message: "Draft discarded" });
   } catch (err) {
     res.status(500).json({ error: "Discard failed: " + err.message });
@@ -141,9 +145,11 @@ app.post("/api/discard", (req, res) => {
 // GET draft status: check if draft differs from published
 app.get("/api/draft-status", (req, res) => {
   try {
-    const published = JSON.stringify(loadData());
-    const draft = JSON.stringify(loadDraft());
-    res.json({ hasChanges: published !== draft });
+    const pubData = JSON.stringify(loadData());
+    const draftData = JSON.stringify(loadDraft());
+    const pubUrls = JSON.stringify(loadTVUrls());
+    const draftUrls = JSON.stringify(loadTVUrlsDraft());
+    res.json({ hasChanges: pubData !== draftData || pubUrls !== draftUrls });
   } catch (err) {
     res.json({ hasChanges: false });
   }
@@ -402,9 +408,15 @@ app.get("/api/admin/recovery", (req, res) => {
 // ====================== TV DISPLAY URLS API ====================== //
 
 const TV_URLS_FILE = path.join(DATA_DIR, "tv_urls.json");
+const TV_URLS_DRAFT_FILE = path.join(DATA_DIR, "tv_urls_draft.json");
 
 if (!fs.existsSync(TV_URLS_FILE)) {
   fs.writeFileSync(TV_URLS_FILE, JSON.stringify([], null, 2));
+}
+if (!fs.existsSync(TV_URLS_DRAFT_FILE)) {
+  // Initialize draft from published
+  const published = loadTVUrls();
+  fs.writeFileSync(TV_URLS_DRAFT_FILE, JSON.stringify(published, null, 2));
 }
 
 function loadTVUrls() {
@@ -418,16 +430,34 @@ function saveTVUrls(urls) {
   fs.writeFileSync(TV_URLS_FILE, JSON.stringify(urls, null, 2));
 }
 
+function loadTVUrlsDraft() {
+  try {
+    const raw = fs.readFileSync(TV_URLS_DRAFT_FILE, "utf8");
+    return JSON.parse(raw || '[]');
+  } catch (err) { return loadTVUrls(); }
+}
+
+function saveTVUrlsDraft(urls) {
+  fs.writeFileSync(TV_URLS_DRAFT_FILE, JSON.stringify(urls, null, 2));
+}
+
+// GET published TV URLs (for users/TVs)
 app.get("/api/tv-urls", (req, res) => {
   res.json(loadTVUrls());
 });
 
+// GET draft TV URLs (for admins)
+app.get("/api/tv-urls/draft", (req, res) => {
+  res.json(loadTVUrlsDraft());
+});
+
+// POST save TV URLs to draft
 app.post("/api/tv-urls", (req, res) => {
   const urls = req.body;
   if (!Array.isArray(urls)) {
     return res.status(400).json({ error: "URLs must be an array" });
   }
-  saveTVUrls(urls);
+  saveTVUrlsDraft(urls);
   res.json({ status: "ok", count: urls.length });
 });
 
@@ -475,8 +505,8 @@ app.post("/api/upload", upload.single('file'), (req, res) => {
   const fileName = path.basename(req.file.path);
   const fileUrl = '/uploads/' + fileName;
 
-  // Add to TV URLs list
-  const urls = loadTVUrls();
+  // Add to draft TV URLs list
+  const urls = loadTVUrlsDraft();
   urls.push({
     name: displayName,
     url: fileUrl,
@@ -484,7 +514,7 @@ app.post("/api/upload", upload.single('file'), (req, res) => {
     originalName: req.file.originalname,
     uploadedAt: new Date().toISOString()
   });
-  saveTVUrls(urls);
+  saveTVUrlsDraft(urls);
 
   res.json({
     status: "ok",
