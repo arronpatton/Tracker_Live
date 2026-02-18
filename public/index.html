@@ -454,7 +454,15 @@ body {
     </div>
   </div>
 
-  <button id="btnTVDisplay" aria-label="TV Display Mode" title="TV Display Mode">&#128250; TV Display</button>
+  <!-- TV Display Dropdown -->
+  <div id="tvDropdownContainer" style="position:relative; display:inline-block;">
+    <select id="tvPageSelect" style="padding:0.4rem 0.6rem; font-size:var(--fs-14); font-weight:bold; border:1px solid var(--border); border-radius:var(--radius-sm); background:#ffffff; color:#000; cursor:pointer; min-width:160px; outline:none;">
+      <option value="home" selected>&#127968; Tracker Home</option>
+    </select>
+  </div>
+  <button id="btnTVAddNew" aria-label="Add Display URL" title="Add a new display URL" style="padding:0.4rem 0.6rem; font-size:var(--fs-14);">+</button>
+  <button id="btnTVRemove" aria-label="Remove Selected URL" title="Remove selected URL" style="padding:0.4rem 0.6rem; font-size:var(--fs-14); background:var(--danger); display:none;">&#10005;</button>
+
   <button id="btnLogin" aria-label="Login">Login</button>
 <button id="btnEditUser" style="display:none;" aria-label="Edit Users">Edit User</button>
 </div>
@@ -607,73 +615,39 @@ body {
   </div>
 </div>
 
-<!-- TV Display Settings Modal -->
-<div id="tvDisplayModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="tvDisplayModalTitle">
-  <div class="modalContent" style="width: 32rem;">
-    <h3 id="tvDisplayModalTitle">&#128250; TV DISPLAY MODE</h3>
-    <p style="font-size: 0.8rem; color: #555; margin: 0.5rem 0 1rem;">
-      Rotate between this tracker and an external page using full-page navigation.<br>
-      Works with SharePoint, Excel Online, and any authenticated page.
+<!-- Add URL Mini-Modal -->
+<div id="tvAddUrlModal" class="modal" role="dialog" aria-modal="true">
+  <div class="modalContent" style="width: 28rem;">
+    <h3>Add Display URL</h3>
+    <p style="font-size: 0.8rem; color: #555; margin: 0.5rem 0 0.75rem;">
+      Paste a URL or SharePoint embed code below.
     </p>
-
-    <label for="tvUrlInput" style="display: block; text-align: left; padding-left: 5%; font-size: var(--fs-12); margin-bottom: 0.25rem; color: var(--text);">External URL (paste embed src or direct link)</label>
-    <input type="text" id="tvUrlInput" placeholder="https://your-sharepoint-link.com/..." style="width: 90%;" />
-    <p id="tvUrlHint" style="font-size:0.7rem; color:#888; padding-left:5%; margin:0.25rem 0 0; text-align:left;"></p>
-
-    <div style="display:flex; gap:1rem; padding: 0 5%; margin-top:0.75rem;">
-      <div style="flex:1;">
-        <label for="tvIntervalTracker" style="display:block; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Show Tracker (sec)</label>
-        <input type="number" id="tvIntervalTracker" min="5" max="600" value="30" style="width:100%;" />
-      </div>
-      <div style="flex:1;">
-        <label for="tvIntervalExternal" style="display:block; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Show External (sec)</label>
-        <input type="number" id="tvIntervalExternal" min="5" max="600" value="30" style="width:100%;" />
-      </div>
-    </div>
-
-    <div id="tvSavedUrls" style="margin-top: 1rem; text-align: left; padding: 0 5%; max-height: 10rem; overflow-y: auto;"></div>
-
-    <div id="tvStatusMsg" style="font-size:0.8rem; color:var(--success); margin-top:0.5rem; display:none;"></div>
-
-    <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
-      <button id="btnTVStart" style="background: var(--success);">&#9654; Start Rotation</button>
-      <button id="btnTVManual" style="background: #6f42c1;">&#8646; Manual Switch</button>
-      <button id="btnTVStop" style="background: var(--danger); display: none;">&#9632; Stop</button>
-      <button id="btnTVAddUrl">+ Save URL</button>
-      <button id="btnTVClose">Close</button>
+    <label for="tvNewUrlInput" style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Display Name</label>
+    <input type="text" id="tvNewUrlName" placeholder="e.g. Production Schedule" style="width:90%;" />
+    <label for="tvNewUrlInput" style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; margin-top:0.5rem; color:var(--text);">URL or Embed Code</label>
+    <input type="text" id="tvNewUrlInput" placeholder="https://... or paste iframe embed code" style="width:90%;" />
+    <p id="tvNewUrlHint" style="font-size:0.7rem; color:#888; padding-left:5%; margin:0.25rem 0 0; text-align:left;"></p>
+    <div style="margin-top:1rem; display:flex; justify-content:center; gap:0.5rem;">
+      <button id="btnTVSaveUrl" style="background:var(--success);">Save</button>
+      <button id="btnTVCancelUrl">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- TV countdown bar (shown at bottom during rotation) -->
-<div id="tvCountdownBar" style="display:none; position:fixed; bottom:0; left:0; height:4px; background:var(--accent); z-index:9999; width:100%;"></div>
-
-<!-- TV manual switch floating button (shown in manual mode) -->
-<div id="tvFloatingControls" style="display:none; position:fixed; bottom:20px; right:20px; z-index:9999; display:none;">
-  <button id="btnTVFloatingSwitch" style="background:#6f42c1; padding:12px 20px; font-size:1rem; border-radius:50px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">&#8646; Switch View</button>
-  <button id="btnTVFloatingStop" style="background:var(--danger); padding:12px 16px; font-size:1rem; border-radius:50px; box-shadow:0 4px 12px rgba(0,0,0,0.3);">&#9632; Stop</button>
-</div>
-
 <script>
-// ===================== TV DISPLAY MODE (REDIRECT-BASED) ===================== //
+// ===================== TV PAGE SWITCHER (DROPDOWN) ===================== //
 (function() {
-  const TV_STORAGE_KEY = 'tvDisplaySettings';
-  const TV_ACTIVE_KEY  = 'tvRotationActive';
-  const TV_RETURN_KEY  = 'tvReturnTo';
-  const TV_MANUAL_KEY  = 'tvManualMode';
-  let tvTimer = null;
-  let tvActive = false;
-  let tvManual = false;
+  var TV_STORAGE_KEY = 'tvDisplayUrls';
 
-  function loadTVSettings() {
+  function loadUrls() {
     try {
-      const raw = localStorage.getItem(TV_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : { urls: [], intervalTracker: 30, intervalExternal: 30, lastUrl: '' };
-    } catch(e) { return { urls: [], intervalTracker: 30, intervalExternal: 30, lastUrl: '' }; }
+      var raw = localStorage.getItem(TV_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) { return []; }
   }
 
-  function saveTVSettings(settings) {
-    try { localStorage.setItem(TV_STORAGE_KEY, JSON.stringify(settings)); }
+  function saveUrls(urls) {
+    try { localStorage.setItem(TV_STORAGE_KEY, JSON.stringify(urls)); }
     catch(e) {}
   }
 
@@ -684,248 +658,162 @@ body {
     return input;
   }
 
-  function renderSavedUrls() {
-    var settings = loadTVSettings();
-    var container = document.getElementById('tvSavedUrls');
-    if (!container) return;
-    if (settings.urls.length === 0) {
-      container.innerHTML = '<p style="font-size:0.75rem; color:#888; text-align:center;">No saved URLs yet.</p>';
+  function renderDropdown() {
+    var select = document.getElementById('tvPageSelect');
+    if (!select) return;
+
+    // Remember current selection
+    var currentVal = select.value;
+
+    // Clear all except the first option (Tracker Home)
+    while (select.options.length > 1) {
+      select.remove(1);
+    }
+
+    // Add saved URLs
+    var urls = loadUrls();
+    urls.forEach(function(item, i) {
+      var opt = document.createElement('option');
+      opt.value = 'url:' + i;
+      opt.textContent = item.name || ('Page ' + (i + 1));
+      select.appendChild(opt);
+    });
+
+    // Restore selection if still valid
+    for (var j = 0; j < select.options.length; j++) {
+      if (select.options[j].value === currentVal) {
+        select.value = currentVal;
+        break;
+      }
+    }
+
+    // Show/hide delete button
+    updateDeleteButton();
+  }
+
+  function updateDeleteButton() {
+    var select = document.getElementById('tvPageSelect');
+    var btnRemove = document.getElementById('btnTVRemove');
+    if (!select || !btnRemove) return;
+    btnRemove.style.display = (select.value !== 'home') ? 'inline-block' : 'none';
+  }
+
+  function navigateToSelection() {
+    var select = document.getElementById('tvPageSelect');
+    if (!select) return;
+    var val = select.value;
+
+    if (val === 'home') {
+      // Already on home — do nothing (or could reload)
       return;
     }
-    container.innerHTML = '<p style="font-size:0.75rem; font-weight:bold; margin-bottom:0.25rem;">Saved URLs:</p>' +
-      settings.urls.map(function(url, i) {
-        var display = url.length > 60 ? url.substring(0, 57) + '...' : url;
-        return '<div style="display:flex; align-items:center; gap:0.5rem; margin:0.25rem 0; padding:0.25rem 0.5rem; background:#ffffff; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.75rem;">' +
-          '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#000;" title="' + url + '">' + display + '</span>' +
-          '<button onclick="tvLoadUrl(' + i + ')" style="font-size:0.65rem; padding:2px 6px; background:var(--accent);">Load</button>' +
-          '<button onclick="tvRemoveUrl(' + i + ')" style="font-size:0.65rem; padding:2px 6px; background:var(--danger);">&#10005;</button>' +
-        '</div>';
-      }).join('');
-  }
 
-  window.tvLoadUrl = function(index) {
-    var settings = loadTVSettings();
-    if (settings.urls[index]) document.getElementById('tvUrlInput').value = settings.urls[index];
-  };
+    // Parse index from "url:N"
+    var idx = parseInt(val.replace('url:', ''));
+    var urls = loadUrls();
+    if (!urls[idx]) return;
 
-  window.tvRemoveUrl = function(index) {
-    var settings = loadTVSettings();
-    settings.urls.splice(index, 1);
-    saveTVSettings(settings);
-    renderSavedUrls();
-  };
-
-  function addUrl() {
-    var input = document.getElementById('tvUrlInput');
-    var url = extractUrl(input.value);
-    if (!url) { alert('Enter a URL first.'); return; }
-    input.value = url;
-    var settings = loadTVSettings();
-    if (settings.urls.indexOf(url) === -1) {
-      settings.urls.push(url);
-      saveTVSettings(settings);
-      renderSavedUrls();
-    }
-  }
-
-  function startCountdownBar(seconds) {
-    var bar = document.getElementById('tvCountdownBar');
-    if (!bar) return;
-    bar.style.display = 'block';
-    bar.style.transition = 'none';
-    bar.style.width = '100%';
-    bar.offsetHeight;
-    bar.style.transition = 'width ' + seconds + 's linear';
-    bar.style.width = '0%';
-  }
-
-  function hideCountdownBar() {
-    var bar = document.getElementById('tvCountdownBar');
-    if (bar) { bar.style.display = 'none'; bar.style.transition = 'none'; bar.style.width = '0%'; }
-  }
-
-  function buildBounceUrl(url, intervalExternal, mode) {
+    // Navigate to bounce page
     var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
     var returnUrl = window.location.href.split('#')[0];
-    bounceUrl += '#url=' + encodeURIComponent(url) + '&duration=' + intervalExternal + '&return=' + encodeURIComponent(returnUrl) + '&mode=' + mode;
-    return bounceUrl;
+    bounceUrl += '#url=' + encodeURIComponent(urls[idx].url) + '&mode=manual&return=' + encodeURIComponent(returnUrl);
+    window.location.href = bounceUrl;
   }
 
-  function saveUrlAndEnterFullscreen(url) {
-    var settings = loadTVSettings();
-    settings.lastUrl = url;
-    saveTVSettings(settings);
+  function removeSelected() {
+    var select = document.getElementById('tvPageSelect');
+    if (!select || select.value === 'home') return;
 
-    document.getElementById('tvUrlInput').value = url;
+    var idx = parseInt(select.value.replace('url:', ''));
+    var urls = loadUrls();
+    if (!urls[idx]) return;
 
-    // Close modal
-    if (typeof closeModal === 'function') closeModal('tvDisplayModal');
-    else document.getElementById('tvDisplayModal').style.display = 'none';
+    if (!confirm('Remove "' + (urls[idx].name || urls[idx].url) + '" from the list?')) return;
 
-    // Hide top bar for full-screen
-    document.getElementById('topBar').style.display = 'none';
-    document.getElementById('trackerWrapper').style.height = '100vh';
+    urls.splice(idx, 1);
+    saveUrls(urls);
+    select.value = 'home';
+    renderDropdown();
   }
 
-  // ===== AUTO ROTATION =====
-  function startRotation() {
-    var rawInput = document.getElementById('tvUrlInput').value;
-    var url = extractUrl(rawInput);
-    var intervalTracker = parseInt(document.getElementById('tvIntervalTracker').value) || 30;
-    var intervalExternal = parseInt(document.getElementById('tvIntervalExternal').value) || 30;
+  function openAddModal() {
+    document.getElementById('tvNewUrlName').value = '';
+    document.getElementById('tvNewUrlInput').value = '';
+    var hint = document.getElementById('tvNewUrlHint');
+    if (hint) hint.textContent = '';
 
-    if (!url) { alert('Please enter a URL to rotate with.'); return; }
-
-    var settings = loadTVSettings();
-    settings.intervalTracker = intervalTracker;
-    settings.intervalExternal = intervalExternal;
-    saveTVSettings(settings);
-
-    localStorage.setItem(TV_ACTIVE_KEY, 'true');
-    localStorage.removeItem(TV_MANUAL_KEY);
-
-    tvActive = true;
-    tvManual = false;
-    document.getElementById('btnTVStart').style.display = 'none';
-    document.getElementById('btnTVManual').style.display = 'none';
-    document.getElementById('btnTVStop').style.display = 'inline-block';
-
-    saveUrlAndEnterFullscreen(url);
-
-    startCountdownBar(intervalTracker);
-    tvTimer = setTimeout(function() {
-      window.location.href = buildBounceUrl(url, intervalExternal, 'auto');
-    }, intervalTracker * 1000);
+    if (typeof openModal === 'function') openModal('tvAddUrlModal');
+    else document.getElementById('tvAddUrlModal').style.display = 'flex';
   }
 
-  // ===== MANUAL SWITCH =====
-  function startManual() {
-    var rawInput = document.getElementById('tvUrlInput').value;
-    var url = extractUrl(rawInput);
-
-    if (!url) { alert('Please enter a URL to switch to.'); return; }
-
-    var settings = loadTVSettings();
-    saveTVSettings(settings);
-
-    localStorage.setItem(TV_ACTIVE_KEY, 'true');
-    localStorage.setItem(TV_MANUAL_KEY, 'true');
-
-    tvActive = true;
-    tvManual = true;
-
-    saveUrlAndEnterFullscreen(url);
-
-    // Show floating controls
-    document.getElementById('tvFloatingControls').style.display = 'block';
+  function closeAddModal() {
+    if (typeof closeModal === 'function') closeModal('tvAddUrlModal');
+    else document.getElementById('tvAddUrlModal').style.display = 'none';
   }
 
-  function manualSwitchToExternal() {
-    var settings = loadTVSettings();
-    if (!settings.lastUrl) return;
-    window.location.href = buildBounceUrl(settings.lastUrl, 0, 'manual');
-  }
+  function saveNewUrl() {
+    var nameInput = document.getElementById('tvNewUrlName');
+    var urlInput = document.getElementById('tvNewUrlInput');
+    var name = (nameInput.value || '').trim();
+    var url = extractUrl(urlInput.value);
 
-  // ===== STOP (works for both modes) =====
-  function stopRotation() {
-    tvActive = false;
-    tvManual = false;
-    localStorage.removeItem(TV_ACTIVE_KEY);
-    localStorage.removeItem(TV_RETURN_KEY);
-    localStorage.removeItem(TV_MANUAL_KEY);
+    if (!url) { alert('Please enter a URL.'); return; }
+    if (!name) { alert('Please enter a display name.'); return; }
 
-    if (tvTimer) { clearTimeout(tvTimer); tvTimer = null; }
+    var urls = loadUrls();
+    urls.push({ name: name, url: url });
+    saveUrls(urls);
 
-    document.getElementById('topBar').style.display = 'flex';
-    document.getElementById('trackerWrapper').style.height = 'calc(100vh - 48px)';
-    document.getElementById('btnTVStart').style.display = 'inline-block';
-    document.getElementById('btnTVManual').style.display = 'inline-block';
-    document.getElementById('btnTVStop').style.display = 'none';
-    document.getElementById('tvFloatingControls').style.display = 'none';
-    hideCountdownBar();
+    closeAddModal();
+    renderDropdown();
 
-    var statusMsg = document.getElementById('tvStatusMsg');
-    if (statusMsg) { statusMsg.textContent = 'Stopped.'; statusMsg.style.display = 'block'; setTimeout(function(){ statusMsg.style.display = 'none'; }, 2000); }
-  }
-
-  // ===== ON PAGE LOAD: Check if returning from bounce page =====
-  function checkReturnFromRotation() {
-    var isActive = localStorage.getItem(TV_ACTIVE_KEY);
-    if (isActive !== 'true') return;
-
-    var settings = loadTVSettings();
-    var isManual = localStorage.getItem(TV_MANUAL_KEY) === 'true';
-
-    tvActive = true;
-
-    // Hide top bar for full-screen display
-    document.getElementById('topBar').style.display = 'none';
-    document.getElementById('trackerWrapper').style.height = '100vh';
-
-    if (isManual) {
-      // Manual mode: show floating controls, no auto-redirect
-      tvManual = true;
-      document.getElementById('tvFloatingControls').style.display = 'block';
-    } else {
-      // Auto mode: countdown then redirect
-      startCountdownBar(settings.intervalTracker);
-      tvTimer = setTimeout(function() {
-        window.location.href = buildBounceUrl(settings.lastUrl, settings.intervalExternal, 'auto');
-      }, settings.intervalTracker * 1000);
+    // Select the newly added item
+    var select = document.getElementById('tvPageSelect');
+    if (select) {
+      select.value = 'url:' + (urls.length - 1);
+      updateDeleteButton();
     }
   }
 
-  // Wire up buttons
+  // Wire up
   document.addEventListener('DOMContentLoaded', function() {
-    var urlInput = document.getElementById('tvUrlInput');
+    renderDropdown();
+
+    var select = document.getElementById('tvPageSelect');
+    if (select) {
+      select.addEventListener('change', function() {
+        updateDeleteButton();
+        navigateToSelection();
+      });
+    }
+
+    var btnAdd = document.getElementById('btnTVAddNew');
+    if (btnAdd) btnAdd.onclick = openAddModal;
+
+    var btnRemove = document.getElementById('btnTVRemove');
+    if (btnRemove) btnRemove.onclick = removeSelected;
+
+    var btnSave = document.getElementById('btnTVSaveUrl');
+    if (btnSave) btnSave.onclick = saveNewUrl;
+
+    var btnCancel = document.getElementById('btnTVCancelUrl');
+    if (btnCancel) btnCancel.onclick = closeAddModal;
+
+    // Auto-extract URL from pasted embed code
+    var urlInput = document.getElementById('tvNewUrlInput');
     if (urlInput) {
-      urlInput.addEventListener('paste', function(e) {
+      urlInput.addEventListener('paste', function() {
         setTimeout(function() {
           var val = urlInput.value;
           var extracted = extractUrl(val);
           if (extracted !== val) {
             urlInput.value = extracted;
-            var hint = document.getElementById('tvUrlHint');
+            var hint = document.getElementById('tvNewUrlHint');
             if (hint) { hint.textContent = '✓ Extracted URL from embed code'; setTimeout(function(){ hint.textContent = ''; }, 3000); }
           }
         }, 50);
       });
     }
-
-    var btnTV = document.getElementById('btnTVDisplay');
-    if (btnTV) btnTV.onclick = function() {
-      var settings = loadTVSettings();
-      document.getElementById('tvIntervalTracker').value = settings.intervalTracker || 30;
-      document.getElementById('tvIntervalExternal').value = settings.intervalExternal || 30;
-      if (settings.lastUrl) document.getElementById('tvUrlInput').value = settings.lastUrl;
-      renderSavedUrls();
-      document.getElementById('btnTVStart').style.display = tvActive ? 'none' : 'inline-block';
-      document.getElementById('btnTVManual').style.display = tvActive ? 'none' : 'inline-block';
-      document.getElementById('btnTVStop').style.display = tvActive ? 'inline-block' : 'none';
-      if (typeof openModal === 'function') openModal('tvDisplayModal');
-      else document.getElementById('tvDisplayModal').style.display = 'flex';
-    };
-
-    document.getElementById('btnTVStart').onclick = startRotation;
-    document.getElementById('btnTVManual').onclick = startManual;
-    document.getElementById('btnTVStop').onclick = stopRotation;
-    document.getElementById('btnTVAddUrl').onclick = addUrl;
-    document.getElementById('btnTVClose').onclick = function() {
-      if (typeof closeModal === 'function') closeModal('tvDisplayModal');
-      else document.getElementById('tvDisplayModal').style.display = 'none';
-    };
-
-    // Floating controls
-    document.getElementById('btnTVFloatingSwitch').onclick = manualSwitchToExternal;
-    document.getElementById('btnTVFloatingStop').onclick = stopRotation;
-
-    // ESC key stops rotation
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && tvActive) stopRotation();
-    });
-
-    // Check if returning from external page
-    checkReturnFromRotation();
   });
 })();
 </script>
