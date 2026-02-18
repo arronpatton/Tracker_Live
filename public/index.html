@@ -466,6 +466,13 @@ body {
 
   <button id="btnLogin" aria-label="Login">Login</button>
 <button id="btnEditUser" style="display:none;" aria-label="Edit Users">Edit User</button>
+<button id="btnPublish" style="display:none; background:#28a745; font-weight:bold;" aria-label="Publish Changes">&#9650; Publish</button>
+<button id="btnDiscard" style="display:none; background:#6c757d;" aria-label="Discard Changes">&#10005; Discard</button>
+</div>
+
+<!-- Unpublished changes banner -->
+<div id="draftBanner" style="display:none; background:#fff3cd; color:#856404; text-align:center; padding:6px 12px; font-size:0.8rem; font-weight:bold; border-bottom:2px solid #ffc107;">
+  &#9888; You have unpublished changes. TVs and users will not see updates until you click <strong>Publish</strong>.
 </div>
 
   <div id="trackerWrapper" aria-live="polite" role="region" aria-label="Project timelines"></div>
@@ -962,7 +969,9 @@ async function saveData() {
       body: JSON.stringify({ groups, logs })
     });
     if (!res.ok) throw new Error("Save failed");
-    console.log("✅ Data saved to server");
+    console.log("✅ Draft saved to server");
+    // Check and show draft banner after saving
+    checkDraftStatus();
   } catch (e) {
     console.warn("Save failed:", e);
   }
@@ -970,7 +979,9 @@ async function saveData() {
  
 async function loadFromServer() {
   try {
-    const res = await fetch("/api/data");
+    // Admins load from draft, everyone else loads published
+    var endpoint = (currentUser && currentUser.role === 'admin') ? '/api/draft' : '/api/data';
+    const res = await fetch(endpoint);
     if (!res.ok) throw new Error("Load failed");
     const data = await res.json();
     if (data && Array.isArray(data.groups) && Array.isArray(data.logs)) {
@@ -982,6 +993,67 @@ async function loadFromServer() {
     console.warn("Server load failed:", e);
   }
   return false;
+}
+
+async function publishChanges() {
+  try {
+    const res = await fetch("/api/publish", { method: "POST" });
+    if (!res.ok) throw new Error("Publish failed");
+    console.log("✅ Changes published");
+    hideDraftBanner();
+    alert("Changes published! TVs will update on their next refresh.");
+  } catch (e) {
+    console.warn("Publish failed:", e);
+    alert("Publish failed. Please try again.");
+  }
+}
+
+async function discardChanges() {
+  if (!confirm("Discard all unpublished changes? This will revert to the last published version.")) return;
+  try {
+    const res = await fetch("/api/discard", { method: "POST" });
+    if (!res.ok) throw new Error("Discard failed");
+    console.log("✅ Draft discarded");
+    // Reload the published data
+    await loadFromServer();
+    render();
+    hideDraftBanner();
+  } catch (e) {
+    console.warn("Discard failed:", e);
+    alert("Discard failed. Please try again.");
+  }
+}
+
+async function checkDraftStatus() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  try {
+    const res = await fetch("/api/draft-status");
+    if (!res.ok) return;
+    const status = await res.json();
+    if (status.hasChanges) {
+      showDraftBanner();
+    } else {
+      hideDraftBanner();
+    }
+  } catch (e) {}
+}
+
+function showDraftBanner() {
+  var banner = document.getElementById('draftBanner');
+  var btnPub = document.getElementById('btnPublish');
+  var btnDis = document.getElementById('btnDiscard');
+  if (banner) banner.style.display = 'block';
+  if (btnPub) btnPub.style.display = 'inline-block';
+  if (btnDis) btnDis.style.display = 'inline-block';
+}
+
+function hideDraftBanner() {
+  var banner = document.getElementById('draftBanner');
+  var btnPub = document.getElementById('btnPublish');
+  var btnDis = document.getElementById('btnDiscard');
+  if (banner) banner.style.display = 'none';
+  if (btnPub) btnPub.style.display = 'none';
+  if (btnDis) btnDis.style.display = 'none';
 }
 
 
@@ -1004,8 +1076,19 @@ window.addEventListener("DOMContentLoaded", async () => {
   
   render();
 
+  // Wire up publish/discard buttons
+  var btnPub = document.getElementById('btnPublish');
+  if (btnPub) btnPub.onclick = publishChanges;
+  var btnDis = document.getElementById('btnDiscard');
+  if (btnDis) btnDis.onclick = discardChanges;
+
+  // Check draft status on load (shows banner if admin has unpublished changes)
+  checkDraftStatus();
+
   // Auto-refresh data every 10 minutes (keeps TV displays up to date)
+  // Only auto-refresh for non-admin users (admins work on draft)
   setInterval(async function() {
+    if (currentUser && currentUser.role === 'admin') return;
     var refreshed = await loadFromServer();
     if (refreshed) {
       render();
@@ -3157,7 +3240,13 @@ function handleLogin() {
   }
 
 applyPermissions();
-  render();                             // ✅ refresh UI instantly
+
+  // If admin, reload data from draft and check draft status
+  if (userRole === 'admin') {
+    loadFromServer().then(function() { render(); checkDraftStatus(); });
+  } else {
+    render();
+  }
 
   document.getElementById("screenOverlay").style.display = "none";
   closeModal('loginModal');
@@ -3184,6 +3273,10 @@ applyPermissions();
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("userRole");
     localStorage.removeItem("bm-currentUser");
+
+    // Hide draft UI and reload published data
+    hideDraftBanner();
+    loadFromServer().then(function() { render(); });
 
 
   const btnLogin = document.getElementById('btnLogin');

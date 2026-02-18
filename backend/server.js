@@ -73,19 +73,80 @@ function saveUsers(users) {
 
 // ====================== API ROUTES ====================== //
 
-// GET all groups + logs
+const DRAFT_FILE = path.join(DATA_DIR, "draft.json");
+
+// Ensure draft file exists (copy from published if not)
+if (!fs.existsSync(DRAFT_FILE)) {
+  const published = loadData();
+  fs.writeFileSync(DRAFT_FILE, JSON.stringify(published, null, 2));
+}
+
+// Load draft data
+function loadDraft() {
+  try {
+    const raw = fs.readFileSync(DRAFT_FILE, "utf8");
+    return JSON.parse(raw || '{"groups":[],"logs":[]}');
+  } catch (err) {
+    return loadData(); // fallback to published
+  }
+}
+
+// Save draft data
+function saveDraft(data) {
+  fs.writeFileSync(DRAFT_FILE, JSON.stringify(data, null, 2));
+}
+
+// GET published data (for users/TVs)
 app.get("/api/data", (req, res) => {
   res.json(loadData());
 });
 
-// POST new groups + logs (overwrite whole file)
+// GET draft data (for admins)
+app.get("/api/draft", (req, res) => {
+  res.json(loadDraft());
+});
+
+// POST save to draft only (admin edits)
 app.post("/api/save", (req, res) => {
   const newData = req.body;
   if (!newData || !Array.isArray(newData.groups) || !Array.isArray(newData.logs)) {
     return res.status(400).json({ error: "Groups and logs must be arrays" });
   }
-  saveData(newData);
-  res.json({ status: "ok" });
+  saveDraft(newData);
+  res.json({ status: "ok", target: "draft" });
+});
+
+// POST publish: copy draft to published
+app.post("/api/publish", (req, res) => {
+  try {
+    const draft = loadDraft();
+    saveData(draft);
+    res.json({ status: "ok", message: "Published successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Publish failed: " + err.message });
+  }
+});
+
+// POST discard: copy published back to draft
+app.post("/api/discard", (req, res) => {
+  try {
+    const published = loadData();
+    saveDraft(published);
+    res.json({ status: "ok", message: "Draft discarded" });
+  } catch (err) {
+    res.status(500).json({ error: "Discard failed: " + err.message });
+  }
+});
+
+// GET draft status: check if draft differs from published
+app.get("/api/draft-status", (req, res) => {
+  try {
+    const published = JSON.stringify(loadData());
+    const draft = JSON.stringify(loadDraft());
+    res.json({ hasChanges: published !== draft });
+  } catch (err) {
+    res.json({ hasChanges: false });
+  }
 });
 
 // GET only logs
