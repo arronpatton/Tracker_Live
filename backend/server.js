@@ -337,12 +337,45 @@ app.get("/api/admin/recovery", (req, res) => {
   }
 });
 
+// ====================== TV DISPLAY URLS API ====================== //
+
+const TV_URLS_FILE = path.join(DATA_DIR, "tv_urls.json");
+
+if (!fs.existsSync(TV_URLS_FILE)) {
+  fs.writeFileSync(TV_URLS_FILE, JSON.stringify([], null, 2));
+}
+
+function loadTVUrls() {
+  try {
+    const raw = fs.readFileSync(TV_URLS_FILE, "utf8");
+    return JSON.parse(raw || '[]');
+  } catch (err) { return []; }
+}
+
+function saveTVUrls(urls) {
+  fs.writeFileSync(TV_URLS_FILE, JSON.stringify(urls, null, 2));
+}
+
+app.get("/api/tv-urls", (req, res) => {
+  res.json(loadTVUrls());
+});
+
+app.post("/api/tv-urls", (req, res) => {
+  const urls = req.body;
+  if (!Array.isArray(urls)) {
+    return res.status(400).json({ error: "URLs must be an array" });
+  }
+  saveTVUrls(urls);
+  res.json({ status: "ok", count: urls.length });
+});
+
 // ======================================================== //
 
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`✅ Data directory: ${DATA_DIR}`);
   console.log(`✅ Data file: ${DATA_FILE}`);
   console.log(`✅ Users file: ${USERS_FILE}`);
+  console.log(`✅ TV URLs file: ${TV_URLS_FILE}`);
 });
+
