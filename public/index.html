@@ -1,0 +1,3611 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BM Project Tracker</title>
+  <style>
+
+:root{
+  --bg: #ffffff;
+  --bg-elev: #f8f9fa;
+  --bg-elev-2: #f1f3f4;
+--text: #000000;
+--text-muted: #000000;
+  --border: rgba(0,0,0,0.15);
+  --accent: #0d6efd;
+  --accent-600: #0b5ed7;
+  --accent-700: #0a58ca;
+  --success: #198754;
+  --danger: #dc3545;
+  --warn: #fd7e14;
+
+  --radius-sm: 0.375rem; /* 6px */
+  --radius-md: 0.625rem; /* 10px */
+  --shadow-1: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+  --shadow-2: 0 0.5rem 1rem rgba(0,0,0,0.15);
+
+  --gap-1: 0.25rem; /* 4px */
+  --gap-2: 0.5rem;  /* 8px */
+  --gap-3: 0.75rem; /* 12px */
+  --gap-4: 1rem;    /* 16px */
+
+  --fs-8: 0.5rem;     /* 8px */
+  --fs-10: 0.625rem;  /* 10px */
+  --fs-12: 0.75rem;   /* 12px */
+  --fs-14: 0.875rem;  /* 14px */
+  --fs-16: 1rem;      /* 16px */
+}
+
+    /* Global font smoothing for crisper text on TVs */
+    body, button, input, select, .dayLetter, .completion, .milestone-label, .milestone-date {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* ===== Overlay for logout state ===== */
+        #screenOverlay {
+      position: fixed;
+      top: 48px; /* height of your #topBar */
+      left: 0;
+      width: 100%;
+      height: calc(100% - 48px); /* cover only below header */
+      backdrop-filter: blur(6px);
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 900;
+      display: none;
+      pointer-events: all;
+    }
+
+    /* Layout */
+body {
+  background: #ffffff;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-size: 16px; /* root for rems */
+}
+#topBar{
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 2.5rem;
+  background: linear-gradient(180deg, #ffffff, #f8f9fa);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+}
+    #topBar .logo { height:2rem; width:auto; object-fit:contain; display:block; }
+
+#trackerWrapper { 
+  flex: 1;
+  position: relative;
+  background: #ffffff;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 48px);
+  min-height: 50rem;
+}
+    .absolute { position:absolute; white-space:nowrap; }
+
+    
+    
+    /* Controls */
+    button{
+      margin:0.3125rem; padding:0.5rem 0.875rem;
+      background:var(--accent); border:none; color:white; font-weight:bold; cursor:pointer;
+      border-radius: var(--radius-sm); font-size: var(--fs-14);
+      letter-spacing:.0125rem; box-shadow: var(--shadow-1);
+      transition: background .12s ease, transform .06s ease, box-shadow .12s ease;
+      outline:none;
+    }
+    button:hover{ background: var(--accent-600); }
+    button:active{ background: var(--accent-700); transform: translateY(0.0625rem); }
+    button:focus-visible{ box-shadow: 0 0 0 0.125rem rgba(0,172,193,.25), 0 0 0 0.25rem rgba(0,172,193,.25); }
+    button[disabled]{ opacity:.6; cursor:not-allowed; box-shadow:none; }
+
+input, select{
+  padding: 0.375rem;
+  margin: 0.3125rem auto;
+  font-size: var(--fs-14);
+  width: 90%;
+  display: block;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+    input:focus, select:focus{ border-color: var(--accent); box-shadow: 0 0 0 0.125rem rgba(0,172,193,.15); }
+
+    /* Bars & milestones */
+   .bar { 
+  position: absolute;
+  background: #ffffff;
+  border: 1px solid var(--border);
+}
+    .bar-fill { position:absolute; background:#669adf; }
+    .bar-border { position:absolute; border:1px solid rgba(255,255,255,0.18); box-sizing:border-box; pointer-events:none; }
+    .milestone { position:absolute; background:var(--warn); pointer-events:none; }
+    .milestone.complete { background:var(--success); }
+    .milestone.overdue { background:var(--danger); }
+    .milestone-label, .milestone-date{ font-size: var(--fs-8); text-shadow: 0 1px 1px rgba(0,0,0,.4); }
+   
+    .milestone-label {
+  font-size: var(--fs-12);
+  color: #000000;
+  font-weight: 600;
+}
+
+    .milestone-date {
+  font-size: var(--fs-8);
+  color: #000000;
+}
+
+/* Pulse animation for due today milestones */
+.milestone-pulse {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  10% {
+    transform: scale(1.3);
+  }
+  20% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.3);
+  }
+  40% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Checkered patterns for completed milestones */
+.milestone-completed-ontime {
+  background: 
+    repeating-linear-gradient(
+      45deg,
+      white,
+      white 10px,
+      rgba(25, 135, 84, 0.2) 10px,
+      rgba(25, 135, 84, 0.2) 20px
+    ) !important;
+}
+
+.milestone-completed-late {
+  background: 
+    repeating-linear-gradient(
+      45deg,
+      white,
+      white 10px,
+      rgba(220, 53, 69, 0.2) 10px,
+      rgba(220, 53, 69, 0.2) 20px
+    ) !important;
+}
+
+    .completion { position:absolute; font-size:var(--fs-12); color:#000000; white-space:nowrap; pointer-events:none; }
+    .weekendHatch { background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 2px, transparent 2px, transparent 6px); pointer-events:none; }
+
+   .dayLetter {
+  position:absolute;
+  font-size: var(--fs-10); /* ~10px */
+  color: #000000;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  line-height:1.1;
+  text-align:center;
+  white-space:nowrap;
+}
+
+    .tick { pointer-events:none; }
+    .draggable { cursor: grab; }
+    .dragging, .draggable:active { cursor: grabbing; }
+    .teamRole { font-weight:bold; font-size: var(--fs-12); text-decoration: none; }
+
+    /* Modals */
+    .modal { display:none; position:fixed; inset:0; justify-content:center; align-items:center; z-index:2000; }
+.modalContent {
+  background: #e9ecef;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-2);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  color: #000000;
+  width: 35rem;
+  max-width: 90vw;
+  text-align: center;
+}
+    .modalContent h4 { margin:0.875rem 0 0.5rem; }
+
+    /* Lists */
+    #milestoneList,#memberList,#groupProjectList { margin-top:0.625rem; text-align:left; max-height:13.75rem; overflow-y:auto; }
+    #milestoneList div, #memberList div {
+  margin:0.25rem 0; padding:0.375rem 0.5rem; background:#ffffff;
+  display:flex; justify-content:space-between; align-items:center; gap:0.5rem;
+  border-radius: var(--radius-sm); border:1px solid var(--border);
+  color: #000000;
+}
+    
+    #milestoneList div {
+      padding: 0.1rem 0.1rem;  /* thinner top/bottom padding */
+      font-size: 0.8rem;         /* optional: smaller text inside */
+    }
+
+    /* Shrink milestone row buttons */
+      #milestoneList button {
+      padding: 2px 6px;      /* less inside spacing */
+      font-size: 0.75rem;    /* slightly smaller text */
+      line-height: 1rem;     /* keeps button height tight */
+      height: auto;          /* let padding control height */
+    }
+
+
+    #milestoneList span,#memberList span,#groupProjectList span { flex:1; }
+
+    /* Project rows in group modal */
+    #groupProjectList .proj-row {
+      margin:0.25rem 0; padding:0.25rem 0.5rem; display:flex; align-items:center; gap:0.5rem;
+      background:#ffffff; border:1px solid var(--border); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-1); line-height:1.2;
+    }
+
+    #groupProjectList .proj-row:hover { background:#f8f9fa; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+    #groupProjectList .proj-row span { 
+  flex:1; 
+  white-space:nowrap; 
+  overflow:hidden; 
+  text-overflow:ellipsis;
+  color: #000000;
+}
+    #groupProjectList .proj-row input[type="checkbox"] { width:1rem; height:1rem; margin-left:0.5rem; }
+
+    /* Group background card */
+.group-card{
+  position: absolute;
+  left: 1rem;
+  background: #e9ecef;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
+  pointer-events: auto;
+  transition: box-shadow .12s ease, transform .12s ease, background .12s ease;
+  cursor: pointer;
+}
+
+.group-card.is-hovered{ 
+  background: #f8f9fa;
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
+}
+
+.group-card {
+  cursor: pointer;
+}
+
+    /* Clickable labels */
+    .clickable { cursor:pointer; }
+    .clickable:focus-visible{ outline: 2px solid rgba(0,172,193,.6); outline-offset:2px; }
+
+    /* Scrollbars */
+    #trackerWrapper::-webkit-scrollbar{ height:0.625rem; width:0.625rem; }
+    #trackerWrapper::-webkit-scrollbar-thumb{ background:#3b3b3b; border-radius:0.5rem; border:0.125rem solid #1f1f1f; }
+    #trackerWrapper::-webkit-scrollbar-track{ background:#1f1f1f; }
+
+    /* Utilities */
+    .sr-only { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+    body.dragging{ user-select:none; }
+
+    @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+
+body {
+  transform: scaleY(1.0);
+  transform-origin: top center;
+}
+
+/* Extra spacing for compiled report */
+#reportContent h2 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.4rem;
+}
+#reportContent h3 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.2rem;
+}
+#reportContent div {
+  margin-bottom: 0.75rem;
+}
+#reportContent table {
+  background: #ffffff;
+  border: 1px solid #444;
+  border-collapse: collapse;
+  width: 100%;
+}
+    .row { display: flex; gap: 0.5rem; }
+
+/* Comment expand arrow and popup */
+.comments-container {
+  position: relative;
+  display: inline-block;
+}
+
+.comment-preview {
+  font-size: 0.8rem;
+  color: #000000;
+  font-style: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.comment-arrow {
+  cursor: pointer;
+  font-size: 0.7rem;
+  color: #000000;
+  margin-left: 5px;
+  user-select: none;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.comment-arrow:hover {
+  color: #333333;
+}
+
+.comment-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.comment-popup {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 25px;
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  box-shadow: var(--shadow-2);
+  z-index: 1000;
+  max-width: 300px;
+  white-space: normal;
+  word-wrap: break-word;
+  font-size: 0.8rem;
+  color: #000000;
+  line-height: 1.4;
+}
+
+.comment-popup.show {
+  display: block;
+}
+
+#milestoneLegend {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#milestoneLegend span {
+  color: #000000;
+}
+
+/* Hide legend on smaller screens */
+@media (max-width: 1200px) {
+  #milestoneLegend {
+    display: none !important;
+  }
+}
+
+  </style>
+</head>
+
+  </style>
+</head>
+<body>
+
+<div id="screenOverlay"></div>
+<div id="topBar">
+  <img src="./Mistral_Logo.jpg" alt="Mistral Inc. logo" class="logo" />
+  <button id="btnNewGroup" aria-label="+ New Group">+ New Group</button>
+
+  <!-- Milestone Legend -->
+  <div id="milestoneLegend" style="display: flex; align-items: center; gap: 15px; margin-left: auto; margin-right: 20px; font-size: 0.75rem;">
+    <span style="font-weight: bold; color: #000;">Milestone Status:</span>
+    
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <div style="width: 12px; height: 12px; background: #63f298; border-radius: 2px;"></div>
+      <span>30+ Days</span>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <div style="width: 12px; height: 12px; background: orange; border-radius: 2px;"></div>
+      <span>1-30 Days</span>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <div style="width: 12px; height: 12px; background: #a3d7d9; border-radius: 2px;"></div>
+      <span>Due Today</span>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <div style="width: 12px; height: 12px; background: red; border-radius: 2px;"></div>
+      <span>Overdue</span>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <div style="width: 12px; height: 12px; background: white; border: 2px solid black; border-radius: 2px;"></div>
+      <span>Complete</span>
+    </div>
+  </div>
+
+  <button id="btnTVDisplay" aria-label="TV Display Mode" title="TV Display Mode">&#128250; TV Display</button>
+  <button id="btnLogin" aria-label="Login">Login</button>
+<button id="btnEditUser" style="display:none;" aria-label="Edit Users">Edit User</button>
+</div>
+
+  <div id="trackerWrapper" aria-live="polite" role="region" aria-label="Project timelines"></div>
+
+  <!-- Group Modal -->
+  <div id="groupModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
+    <div class="modalContent">
+      <h3 id="groupModalTitle">EDIT GROUP</h3>
+      <div style="position: relative; display: inline-block; width: 100%;">
+  <input type="text" id="groupNameInput"
+         placeholder="Group name"
+         style="width: 60%; padding-right: 3.5rem;" />
+  <button id="btnApplyGroupName"
+          style="position: absolute; right: 0.25rem; top: 38%; transform: translateY(-50%);
+                 height: 70%; font-size: 0.75rem; padding: 0 0.5rem;">
+    Apply
+  </button>
+</div>
+<div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:0.75rem;">
+  <button id="btnGroupEditTeam">Edit Team</button>
+  <button id="btnGroupNewProject">Add Project</button>
+  <button id="btnGroupDelete" class="danger">Delete Group</button>
+</div>
+
+<div id="groupProjectList"></div>
+
+<div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:0.75rem;">
+  <button id="btnGroupClose">Close</button>
+</div>
+</div>
+</div>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+  <div class="modalContent">
+    <h3 id="loginModalTitle">LOGIN</h3>
+    
+    <input type="text" id="loginUsername" placeholder="Username" />
+    <input type="password" id="loginPassword" placeholder="Password" />
+
+    <div style="margin-top:0.75rem; display:flex; justify-content:center; gap:0.5rem;">
+      <button id="btnLoginSubmit">Login</button>
+      <button id="btnLoginCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+  <!-- Project Modal -->
+  <div id="projectModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
+    <div class="modalContent">
+      <h3 id="projectModalTitle">ADD PROJECT</h3>
+ <div class="row">
+  <div style="flex: 1;">
+    <label for="projectNameInput" style="display: block; margin-bottom: 0.25rem; color: var(--text); font-size: var(--fs-12);">Project Name</label>
+    <input type="text" id="projectNameInput" placeholder="Project name" style="width: 90%; margin: 0.3125rem auto; padding: 0.375rem; font-size: var(--fs-14); background: #ffffff; color: #000000; border: 1px solid var(--border); border-radius: var(--radius-sm); display: block;" />
+  </div>
+  <div style="flex: 1;">
+    <label for="projectPOInput" style="display: block; margin-bottom: 0.25rem; color: var(--text); font-size: var(--fs-12);">PO Number</label>
+    <input type="text" id="projectPOInput" placeholder="PO Number" style="width: 90%; margin: 0.3125rem auto; padding: 0.375rem; font-size: var(--fs-14); background: #ffffff; color: #000000; border: 1px solid var(--border); border-radius: var(--radius-sm); display: block;" />
+  </div>
+</div>
+      <div class="row">
+  <div style="flex: 1;">
+    <label for="projectStartDate" style="display: block; margin-bottom: 0.25rem; color: var(--text); font-size: var(--fs-12);">Project Start Date</label>
+    <input type="date" id="projectStartDate" placeholder="Project Start Date" />
+  </div>
+  <div style="flex: 1;">
+    <label for="projectCompletionDate" style="display: block; margin-bottom: 0.25rem; color: var(--text); font-size: var(--fs-12);">Project End Date</label>
+    <input type="date" id="projectCompletionDate" placeholder="Project Completion Date" />
+  </div>
+</div>
+<div style="margin-top: 0.75rem;">
+        <label for="projectComments" style="display: block; margin-bottom: 0.25rem; color: var(--text); font-size: var(--fs-12); text-align: left; padding-left: 5%;">Project Comments</label>
+        <textarea id="projectComments" placeholder="Enter project comments..." style="width: 90%; margin: 0.3125rem auto; padding: 0.375rem; font-size: var(--fs-14); background: #ffffff; color: #000000; border: 1px solid var(--border); border-radius: var(--radius-sm); display: block; min-height: 80px; resize: vertical; font-family: inherit;"></textarea>
+      </div>
+       <h4>MILESTONES</h4>
+      <div id="milestoneList"></div>
+      <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:0.75rem;">
+        <button id="btnProjAddMilestone">Add Milestone</button>
+      </div>
+
+      <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:0.75rem;">
+        <button id="btnProjSave">Save</button>
+        <button id="btnProjClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Milestone Modal -->
+  <div id="milestoneModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="milestoneModalTitle">
+    <div class="modalContent">
+      <h3 id="milestoneModalTitle">EDIT MILESTONE</h3>
+      <input type="text" id="milestoneNameInput" placeholder="Milestone name" />
+      <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
+        <input type="date" id="milestoneStartDate" />
+      </div>
+      <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap; margin-top:0.75rem;">
+        <button id="btnMsSave">Save</button>
+        <button id="btnMsClose">Close</button>
+        <button id="btnMsDelete" class="danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Team Modal -->
+<div id="teamModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
+  <div class="modalContent">
+    <h3 id="teamModalTitle">EDIT TEAM</h3>
+
+    <input type="text" id="roleInput" placeholder="Enter role" aria-label="Enter role" />
+    <input type="text" id="memberName" placeholder="Enter name" />
+
+    <!-- Add Member button centered above the list -->
+    <div style="margin-top:0.75rem; display:flex; justify-content:center; gap:0.5rem;">
+      <button id="btnTeamSave">Add Member</button>
+      <button id="btnTeamApply" style="display:none;">Apply Edit</button>
+    </div>
+
+    <!-- Team members will be listed here -->
+    <div id="memberList"></div>
+
+    <!-- Cancel button centered at the bottom -->
+    <div style="margin-top:1rem; display:flex; justify-content:center;">
+      <button id="btnTeamClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="editUserModalTitle">
+  <div class="modalContent">
+    <h3 id="editUserModalTitle">EDIT USERS</h3>
+
+    <input type="text" id="newUsername" placeholder="New username" />
+    <input type="password" id="newPassword" placeholder="New password" />
+    <select id="newRole">
+  <option value="user">User</option>
+  <option value="teamlead">Team Lead</option>
+  <option value="admin">Admin</option>
+</select>
+
+    <div style="margin-top:0.75rem; display:flex; justify-content:center; gap:0.5rem;">
+      <button id="btnAddUser">Add User</button>
+      <button id="btnCloseEditUser">Close</button>
+    </div>
+
+    <div id="userList" style="margin-top:1rem; text-align:left;"></div>
+  </div>
+</div>
+
+<!-- TV Display Settings Modal -->
+<div id="tvDisplayModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="tvDisplayModalTitle">
+  <div class="modalContent" style="width: 32rem;">
+    <h3 id="tvDisplayModalTitle">&#128250; TV DISPLAY MODE</h3>
+    <p style="font-size: 0.8rem; color: #555; margin: 0.5rem 0 1rem;">
+      Rotate between this tracker and an external page using full-page navigation.<br>
+      Works with SharePoint, Excel Online, and any authenticated page.
+    </p>
+
+    <label for="tvUrlInput" style="display: block; text-align: left; padding-left: 5%; font-size: var(--fs-12); margin-bottom: 0.25rem; color: var(--text);">External URL (paste embed src or direct link)</label>
+    <input type="text" id="tvUrlInput" placeholder="https://your-sharepoint-link.com/..." style="width: 90%;" />
+    <p id="tvUrlHint" style="font-size:0.7rem; color:#888; padding-left:5%; margin:0.25rem 0 0; text-align:left;"></p>
+
+    <div style="display:flex; gap:1rem; padding: 0 5%; margin-top:0.75rem;">
+      <div style="flex:1;">
+        <label for="tvIntervalTracker" style="display:block; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Show Tracker (sec)</label>
+        <input type="number" id="tvIntervalTracker" min="5" max="600" value="30" style="width:100%;" />
+      </div>
+      <div style="flex:1;">
+        <label for="tvIntervalExternal" style="display:block; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Show External (sec)</label>
+        <input type="number" id="tvIntervalExternal" min="5" max="600" value="30" style="width:100%;" />
+      </div>
+    </div>
+
+    <div id="tvSavedUrls" style="margin-top: 1rem; text-align: left; padding: 0 5%; max-height: 10rem; overflow-y: auto;"></div>
+
+    <div id="tvStatusMsg" style="font-size:0.8rem; color:var(--success); margin-top:0.5rem; display:none;"></div>
+
+    <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+      <button id="btnTVStart" style="background: var(--success);">&#9654; Start Rotation</button>
+      <button id="btnTVStop" style="background: var(--danger); display: none;">&#9632; Stop Rotation</button>
+      <button id="btnTVAddUrl">+ Save URL</button>
+      <button id="btnTVClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TV countdown bar (shown at bottom during rotation) -->
+<div id="tvCountdownBar" style="display:none; position:fixed; bottom:0; left:0; height:4px; background:var(--accent); z-index:9999; width:100%;"></div>
+
+<script>
+// ===================== TV DISPLAY MODE (REDIRECT-BASED) ===================== //
+(function() {
+  const TV_STORAGE_KEY = 'tvDisplaySettings';
+  const TV_ACTIVE_KEY  = 'tvRotationActive';
+  const TV_RETURN_KEY  = 'tvReturnTo';
+  let tvTimer = null;
+  let tvActive = false;
+
+  function loadTVSettings() {
+    try {
+      const raw = localStorage.getItem(TV_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : { urls: [], intervalTracker: 30, intervalExternal: 30, lastUrl: '' };
+    } catch(e) { return { urls: [], intervalTracker: 30, intervalExternal: 30, lastUrl: '' }; }
+  }
+
+  function saveTVSettings(settings) {
+    try { localStorage.setItem(TV_STORAGE_KEY, JSON.stringify(settings)); }
+    catch(e) {}
+  }
+
+  // Auto-extract src from pasted iframe embed codes
+  function extractUrl(input) {
+    input = (input || '').trim();
+    var match = input.match(/src\s*=\s*["']([^"']+)["']/i);
+    if (match) return match[1];
+    return input;
+  }
+
+  function renderSavedUrls() {
+    var settings = loadTVSettings();
+    var container = document.getElementById('tvSavedUrls');
+    if (!container) return;
+    if (settings.urls.length === 0) {
+      container.innerHTML = '<p style="font-size:0.75rem; color:#888; text-align:center;">No saved URLs yet.</p>';
+      return;
+    }
+    container.innerHTML = '<p style="font-size:0.75rem; font-weight:bold; margin-bottom:0.25rem;">Saved URLs:</p>' +
+      settings.urls.map(function(url, i) {
+        var display = url.length > 60 ? url.substring(0, 57) + '...' : url;
+        return '<div style="display:flex; align-items:center; gap:0.5rem; margin:0.25rem 0; padding:0.25rem 0.5rem; background:#ffffff; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.75rem;">' +
+          '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#000;" title="' + url + '">' + display + '</span>' +
+          '<button onclick="tvLoadUrl(' + i + ')" style="font-size:0.65rem; padding:2px 6px; background:var(--accent);">Load</button>' +
+          '<button onclick="tvRemoveUrl(' + i + ')" style="font-size:0.65rem; padding:2px 6px; background:var(--danger);">&#10005;</button>' +
+        '</div>';
+      }).join('');
+  }
+
+  window.tvLoadUrl = function(index) {
+    var settings = loadTVSettings();
+    if (settings.urls[index]) document.getElementById('tvUrlInput').value = settings.urls[index];
+  };
+
+  window.tvRemoveUrl = function(index) {
+    var settings = loadTVSettings();
+    settings.urls.splice(index, 1);
+    saveTVSettings(settings);
+    renderSavedUrls();
+  };
+
+  function addUrl() {
+    var input = document.getElementById('tvUrlInput');
+    var url = extractUrl(input.value);
+    if (!url) { alert('Enter a URL first.'); return; }
+    input.value = url;
+    var settings = loadTVSettings();
+    if (settings.urls.indexOf(url) === -1) {
+      settings.urls.push(url);
+      saveTVSettings(settings);
+      renderSavedUrls();
+    }
+  }
+
+  function startCountdownBar(seconds) {
+    var bar = document.getElementById('tvCountdownBar');
+    if (!bar) return;
+    bar.style.display = 'block';
+    bar.style.transition = 'none';
+    bar.style.width = '100%';
+    bar.offsetHeight;
+    bar.style.transition = 'width ' + seconds + 's linear';
+    bar.style.width = '0%';
+  }
+
+  function hideCountdownBar() {
+    var bar = document.getElementById('tvCountdownBar');
+    if (bar) { bar.style.display = 'none'; bar.style.transition = 'none'; bar.style.width = '0%'; }
+  }
+
+  function startRotation() {
+    var rawInput = document.getElementById('tvUrlInput').value;
+    var url = extractUrl(rawInput);
+    var intervalTracker = parseInt(document.getElementById('tvIntervalTracker').value) || 30;
+    var intervalExternal = parseInt(document.getElementById('tvIntervalExternal').value) || 30;
+
+    if (!url) { alert('Please enter a URL to rotate with.'); return; }
+
+    // Update the input with the clean URL
+    document.getElementById('tvUrlInput').value = url;
+
+    // Save settings
+    var settings = loadTVSettings();
+    settings.intervalTracker = intervalTracker;
+    settings.intervalExternal = intervalExternal;
+    settings.lastUrl = url;
+    saveTVSettings(settings);
+
+    // Mark rotation as active and store the return URL
+    localStorage.setItem(TV_ACTIVE_KEY, 'true');
+    localStorage.setItem(TV_RETURN_KEY, window.location.href);
+
+    tvActive = true;
+    document.getElementById('btnTVStart').style.display = 'none';
+    document.getElementById('btnTVStop').style.display = 'inline-block';
+
+    // Close modal
+    if (typeof closeModal === 'function') closeModal('tvDisplayModal');
+    else document.getElementById('tvDisplayModal').style.display = 'none';
+
+    // Hide top bar for full-screen
+    document.getElementById('topBar').style.display = 'none';
+    document.getElementById('trackerWrapper').style.height = '100vh';
+
+    // Show countdown then redirect to bounce page which shows external URL
+    startCountdownBar(intervalTracker);
+    tvTimer = setTimeout(function() {
+      // Build bounce page URL with parameters
+      var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
+      var returnUrl = window.location.href.split('#')[0]; // clean return URL
+      bounceUrl += '#url=' + encodeURIComponent(url) + '&duration=' + intervalExternal + '&return=' + encodeURIComponent(returnUrl);
+      window.location.href = bounceUrl;
+    }, intervalTracker * 1000);
+  }
+
+  function stopRotation() {
+    tvActive = false;
+    localStorage.removeItem(TV_ACTIVE_KEY);
+    localStorage.removeItem(TV_RETURN_KEY);
+
+    if (tvTimer) { clearTimeout(tvTimer); tvTimer = null; }
+
+    document.getElementById('topBar').style.display = 'flex';
+    document.getElementById('trackerWrapper').style.height = 'calc(100vh - 48px)';
+    document.getElementById('btnTVStart').style.display = 'inline-block';
+    document.getElementById('btnTVStop').style.display = 'none';
+    hideCountdownBar();
+
+    var statusMsg = document.getElementById('tvStatusMsg');
+    if (statusMsg) { statusMsg.textContent = 'Rotation stopped.'; statusMsg.style.display = 'block'; setTimeout(function(){ statusMsg.style.display = 'none'; }, 2000); }
+  }
+
+  // ===== ON PAGE LOAD: Check if we're returning from a redirect rotation =====
+  function checkReturnFromRotation() {
+    var isActive = localStorage.getItem(TV_ACTIVE_KEY);
+    if (isActive !== 'true') return;
+
+    var settings = loadTVSettings();
+    var returnUrl = localStorage.getItem(TV_RETURN_KEY);
+
+    // We're on the tracker page and rotation is active — we just returned from the external page
+    // OR this is the initial page load with rotation active
+    // Either way: hide the top bar and set up the next redirect cycle
+
+    tvActive = true;
+
+    // Hide top bar for full-screen display
+    document.getElementById('topBar').style.display = 'none';
+    document.getElementById('trackerWrapper').style.height = '100vh';
+
+    // Show tracker for the tracker interval, then redirect to bounce page
+    startCountdownBar(settings.intervalTracker);
+    tvTimer = setTimeout(function() {
+      var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
+      var returnUrl = window.location.href.split('#')[0];
+      bounceUrl += '#url=' + encodeURIComponent(settings.lastUrl) + '&duration=' + settings.intervalExternal + '&return=' + encodeURIComponent(returnUrl);
+      window.location.href = bounceUrl;
+    }, settings.intervalTracker * 1000);
+  }
+
+  // Wire up buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle iframe embed code paste — auto-extract URL
+    var urlInput = document.getElementById('tvUrlInput');
+    if (urlInput) {
+      urlInput.addEventListener('paste', function(e) {
+        setTimeout(function() {
+          var val = urlInput.value;
+          var extracted = extractUrl(val);
+          if (extracted !== val) {
+            urlInput.value = extracted;
+            var hint = document.getElementById('tvUrlHint');
+            if (hint) { hint.textContent = '✓ Extracted URL from embed code'; setTimeout(function(){ hint.textContent = ''; }, 3000); }
+          }
+        }, 50);
+      });
+    }
+
+    var btnTV = document.getElementById('btnTVDisplay');
+    if (btnTV) btnTV.onclick = function() {
+      var settings = loadTVSettings();
+      document.getElementById('tvIntervalTracker').value = settings.intervalTracker || 30;
+      document.getElementById('tvIntervalExternal').value = settings.intervalExternal || 30;
+      if (settings.lastUrl) document.getElementById('tvUrlInput').value = settings.lastUrl;
+      renderSavedUrls();
+      document.getElementById('btnTVStart').style.display = tvActive ? 'none' : 'inline-block';
+      document.getElementById('btnTVStop').style.display = tvActive ? 'inline-block' : 'none';
+      if (typeof openModal === 'function') openModal('tvDisplayModal');
+      else document.getElementById('tvDisplayModal').style.display = 'flex';
+    };
+
+    document.getElementById('btnTVStart').onclick = startRotation;
+    document.getElementById('btnTVStop').onclick = stopRotation;
+    document.getElementById('btnTVAddUrl').onclick = addUrl;
+    document.getElementById('btnTVClose').onclick = function() {
+      if (typeof closeModal === 'function') closeModal('tvDisplayModal');
+      else document.getElementById('tvDisplayModal').style.display = 'none';
+    };
+
+    // ESC key stops rotation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && tvActive) stopRotation();
+    });
+
+    // Check if returning from external page rotation
+    checkReturnFromRotation();
+  });
+})();
+</script>
+
+<script>
+'use strict';
+
+async function showLogs() {
+  try {
+    const res = await fetch("/api/logs");
+    const logs = await res.json();
+    console.table(logs);
+  } catch (err) {
+    console.error("Failed to fetch logs from server:", err);
+  }
+}
+
+  /* ===================== OFFLINE CONSTANTS ===================== */
+  const STORAGE_KEY = 'bm-tracker:v1';
+  
+
+  /* ===================== STATE (offline) ===================== */
+  let groups = []; 
+  let logs = [];                      
+  let contextTarget = null;              
+  let editingMilestoneIndex = null;      
+  let editingMemberIndex = null;
+  let currentUser = null;   // { username, role }
+  
+  // Restore currentUser from localStorage if available
+const savedUser = localStorage.getItem("bm-currentUser");
+if (savedUser) {
+  try {
+    currentUser = JSON.parse(savedUser);
+  } catch (e) {
+    console.warn("Failed to parse saved user:", e);
+    currentUser = null;
+  }
+}
+         
+  /* ===================== LIGHT DOM HELPERS ===================== */
+  const $  = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  function el(tag, cls, text){
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  /* ===================== SERVER STORAGE ===================== */
+async function saveData() {
+  try {
+    const res = await fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groups, logs })
+    });
+    if (!res.ok) throw new Error("Save failed");
+    console.log("✅ Data saved to server");
+  } catch (e) {
+    console.warn("Save failed:", e);
+  }
+}
+ 
+async function loadFromServer() {
+  try {
+    const res = await fetch("/api/data");
+    if (!res.ok) throw new Error("Load failed");
+    const data = await res.json();
+    if (data && Array.isArray(data.groups) && Array.isArray(data.logs)) {
+      groups = data.groups;
+      logs = data.logs;
+      return true;
+    }
+  } catch (e) {
+    console.warn("Server load failed:", e);
+  }
+  return false;
+}
+
+
+window.addEventListener("DOMContentLoaded", async () => {
+  const loaded = await loadFromServer();
+  if (!loaded) {
+    console.warn("Could not load from server, keeping existing data");
+  }
+  
+  // Load users from server
+  const usersLoaded = await loadUsers();
+  if (!usersLoaded) {
+    // Use defaults if server has no users
+    users = [
+      { username: "admin", password: "admin123", role: "admin" },
+      { username: "user", password: "user123", role: "user" }
+    ];
+    await saveUsers(); // Save defaults to server
+  }
+  
+  render();
+});
+
+  /* ===================== DATE / TIMELINE ===================== */
+  function parseLocalDate(yyyy_mm_dd) {
+  const [y, m, d] = yyyy_mm_dd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function addDaysLocal(date, days) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+function endOfDay(date) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function endOfDay(date) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+function checkForMonthChange() {
+  if (currentUser?.role !== "user") return;
+  
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  // Store last known month in a global variable
+  if (window.lastKnownMonth === undefined) {
+    window.lastKnownMonth = currentMonth;
+    window.lastKnownYear = currentYear;
+    return;
+  }
+  
+  // Check if month changed
+  if (currentMonth !== window.lastKnownMonth || currentYear !== window.lastKnownYear) {
+    window.lastKnownMonth = currentMonth;
+    window.lastKnownYear = currentYear;
+    render(); // Re-render to show new month
+  }
+}
+
+function startMonthChangeDetection() {
+  if (currentUser?.role !== "user") return;
+  // Check every hour for month changes
+  setInterval(checkForMonthChange, 60 * 60 * 1000);
+}
+
+/* ===================== LOGGING ===================== */
+function addLogEntry(groupName, type, details) {
+  // Try to resolve to a valid group in `groups`
+  let safeGroup = "UnknownGroup";
+  if (groupName && groupName.trim()) {
+    const found = groups.find(g => g.name === groupName.trim());
+    if (found) {
+      safeGroup = found.name;   // ✅ use the current official group name
+    } else {
+      safeGroup = groupName.trim(); // keep original if not found
+    }
+  }
+
+  const entry = {
+    ts: Date.now(),
+    date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0],
+    group: safeGroup,
+    user: currentUser?.username || "unknown",
+    type,
+    details
+  };
+
+  logs.push(entry);
+
+  // ✅ Post a single log entry to the backend
+  fetch("/api/logs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log("Log saved:", data);
+    })
+    .catch(err => console.error("Failed to save log:", err));
+}
+
+/* ===================== DAILY LOG COMPILER ===================== */
+function compileDailyLogs() {
+  if (!logs.length) return;
+
+  // Normalize group names: fallback if not found
+  logs.forEach(log => {
+    if (!log.group || !groups.find(g => g.name === log.group)) {
+      log.group = "UnknownGroup";
+    }
+  });
+
+  // Build a new structure grouped by group/date
+  const compiled = {};
+  logs.forEach(log => {
+    const key = `${log.group}:${log.date}`;
+    if (!compiled[key]) compiled[key] = [];
+    compiled[key].push(log);
+  });
+
+  // Replace localStorage approach with server persistence
+  console.log("📦 Compiled logs ready:", compiled);
+
+  // ✅ Render logs into daily log panel
+  const logContainer = document.getElementById("logContent");
+  if (logContainer) {
+    logContainer.innerHTML = "";
+    Object.keys(compiled).forEach(key => {
+      compiled[key].forEach(log => {
+        const div = document.createElement("div");
+        div.className = "log-entry";
+
+        if (log.type === "group-create") {
+          div.textContent = `${log.user} created group "${log.group}"`;
+        } else if (log.type === "group-delete") {
+          div.textContent = `${log.user} deleted group "${log.group}"`;
+        } else {
+          // Fallback for all other log types
+          div.textContent = `${log.user} ${log.type} ${log.group}`;
+        }
+
+        logContainer.appendChild(div);
+      });
+    });
+  }
+
+  // Persist to server
+  saveData();
+}
+
+  const BAR_HEIGHT = 24, GAP = 25, LEFT_MARGIN = 200;
+  const roleColors = { TEAM_LEAD:"orange", WELDER:"lightblue", INSTALLER:"limegreen", QC:"violet" };
+  const DAY_MS = 24*60*60*1000;
+
+  function getCurrentMonthRange() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  
+  const startOfMonth = new Date(year, month, 1);
+  const endOfMonth = new Date(year, month + 1, 0); // Last day of current month
+  
+  return {
+    start: startOfMonth.toISOString().split('T')[0], // YYYY-MM-DD format
+    end: endOfMonth.toISOString().split('T')[0]
+  };
+}
+
+  /* ===================== GROUP CARD HOVER TRACKING ===================== */
+  let groupCardRegions = [];
+  let groupHoverHandlersAttached = false;
+  function attachGroupHoverHandlers(){
+    const wrapper = document.getElementById('trackerWrapper');
+    if (!wrapper || groupHoverHandlersAttached) return;
+
+    wrapper.addEventListener('mousemove', (e) => {
+      const r = wrapper.getBoundingClientRect();
+      const x = e.clientX - r.left + wrapper.scrollLeft;
+      const y = e.clientY - r.top  + wrapper.scrollTop;
+
+      let active = null;
+      for (const region of groupCardRegions){
+        if (x >= region.x1 && x <= region.x2 && y >= region.y1 && y <= region.y2){
+          active = region; break;
+        }
+      }
+      groupCardRegions.forEach(region =>
+        region.el.classList.toggle('is-hovered', region === active)
+      );
+    });
+
+    wrapper.addEventListener('mouseleave', () => {
+      groupCardRegions.forEach(region => region.el.classList.remove('is-hovered'));
+    });
+
+    groupHoverHandlersAttached = true;
+  }
+
+  /* ===================== RENDER TIMELINE ===================== */
+function render() {
+  const formatTimelineDate = (dateStr) => {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split('-');
+    return `${month}/${day}/${year}`;
+  };
+
+  const wrapper = document.getElementById("trackerWrapper");
+  if (!wrapper) return;
+  wrapper.innerHTML = "";
+
+  let y = 48;
+
+  groupCardRegions = [];
+  attachGroupHoverHandlers();
+
+
+  groups.forEach((g, gi) => {
+    const sidePad = 15;     // match original
+    const labelColWidth =100;    // match original
+    const labelGutter = 10;
+    const barXBase = sidePad + labelColWidth + labelGutter;
+
+// group background card (aligned to sidePad)
+const groupStartY = y - 45;
+const card = document.createElement('div');
+card.className = 'group-card group-' + gi;
+card.style.left   = sidePad + 'px';
+card.style.top    = groupStartY + 'px';
+card.style.width  = (wrapper.clientWidth - sidePad * 2) + 'px';
+card.style.height = '1px';
+
+wrapper.appendChild(card);
+
+// team ribbon (unchanged)
+const teamContainer = document.createElement("div");
+teamContainer.className = "absolute group-" + gi;
+    teamContainer.style.left = "50%";
+    teamContainer.style.top = (y - 40) + "px";
+    teamContainer.style.transform = "translateX(-50%)";
+    teamContainer.style.display = "flex";
+    teamContainer.style.gap = "16px";
+    (g.teamMembers || []).forEach((member) => {
+const box = document.createElement("div");
+box.style.display = "flex";
+box.style.flexDirection = "row";  // Changed from "column" to "row"
+box.style.alignItems = "center";
+box.style.minWidth = "90px";
+box.style.gap = "8px";  // Increased gap for better spacing
+
+const roleEl = document.createElement("div");
+roleEl.className = "teamRole";
+roleEl.style.color = "#000000";
+roleEl.textContent = member.role;
+
+const nameEl = document.createElement("div");
+nameEl.style.color = "000000";
+nameEl.style.fontSize = "0.75rem";
+nameEl.textContent = member.name;
+
+box.appendChild(roleEl);
+box.appendChild(nameEl);
+      teamContainer.appendChild(box);
+    });
+    wrapper.appendChild(teamContainer);
+  
+// group label 
+const groupLabel = document.createElement("span");
+groupLabel.className = "absolute clickable group-" + gi;
+groupLabel.style.left = (sidePad + 10) + "px";   // 👈 label’s X position
+groupLabel.style.top = (y - 40) + "px";          // 👈 label’s Y position
+groupLabel.style.fontWeight = "700";
+groupLabel.style.fontSize = "1rem";
+groupLabel.style.color = "#000000";
+groupLabel.textContent = g.name;
+groupLabel.setAttribute("role", "button");
+groupLabel.setAttribute("tabindex", "0");
+groupLabel.setAttribute("aria-label", `Edit group ${g.name}`);
+groupLabel.setAttribute("aria-controls", "groupModal");
+groupLabel.addEventListener("click", () => openGroupModal(gi));
+groupLabel.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    openGroupModal(gi);
+  }
+});
+wrapper.appendChild(groupLabel);
+
+// compile button (independent absolute positioning)
+if (currentUser?.role === "admin") {
+  const compileBtn = document.createElement("button");
+  compileBtn.textContent = "Compile";
+
+compileBtn.onclick = () => {
+  const reportHTML = showReportPage(g);   // add this line
+  const newTab = window.open("", "_blank");
+ 
+
+newTab.document.write(`
+
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <title>Compiled Report</title>
+      <style>
+        body { background:#1e1e1e; color:#f5f7fa; font-family:Arial,sans-serif; margin:0; padding:1rem; }
+        h2,h3,h4 { margin:0.5rem 0; }
+        table { border-collapse:collapse; margin:0.5rem 0 1.5rem 0; width:100%; }
+        th,td { border:1px solid rgba(255,255,255,0.2); padding:0.15rem 0.5rem; text-align:left; font-size:0.75rem; }
+        th { background:#2a2a2a; }
+        select, button { margin:0.5rem 0.25rem; padding:0.25rem 0.5rem; }
+      </style>
+    </head>
+    <body>
+      <!-- Original compiled report -->
+      <div id="reportContent">${reportHTML}</div>
+
+      <!-- Divider -->
+      <hr />
+
+      <!-- Daily logs controls -->
+      <div>
+        <label for="logDropdown">Daily Logs:</label>
+        <select id="logDropdown"></select>
+        <button id="btnViewLogs">View Logs</button>
+        <button id="btnDeleteLogs" class="danger">Delete Logs</button>
+        <button id="btnExportLogs">Export to Excel</button>
+      </div>
+
+      <!-- Daily logs output -->
+      <div id="logContent" style="margin-top:1rem;"></div>
+
+      <script>
+        // The group name is baked into this page
+        const groupName = ${JSON.stringify(g.name)};
+        // Inject logs into this new tab
+        const logs = ${JSON.stringify(logs)};
+
+        // Render logs for a given date
+        function viewCompiledLogs(date) {
+const logsForDate = logs.filter(l => {
+  if (l.date !== date) return false;
+
+  // Always include group-create and group-delete regardless of group
+  if (l.type === "group-create" || l.type === "group-delete") return true;
+
+  if (!l.group) return true; // allow missing groups
+  return (
+    l.group.toLowerCase() === groupName.toLowerCase() ||
+    l.group.toLowerCase() === "unknowngroup"
+  );
+}).sort((a, b) => b.ts - a.ts);
+
+
+          const container = document.getElementById("logContent");
+          if (!logsForDate.length) {
+            container.innerHTML = "<p><em>No logs for " + date + "</em></p>";
+            return;
+          }
+
+          let html = "<h2>Logs for " + date + "</h2>";
+          html += "<table><tr><th>Time</th><th>User</th><th>Type</th><th>Details</th></tr>";
+
+          logsForDate.forEach(function(l) {
+            const time = new Date(l.ts).toLocaleTimeString();
+            const d = l.details || {};
+            let detailText = "";
+
+            switch (l.type) {
+              case "login": detailText = "User " + (d.username || l.user) + " logged in"; break;
+              case "logout": detailText = "User " + (d.username || l.user) + " logged out"; break;
+
+              case "group-create": detailText = "Group created: " + (d.name || ""); break;
+              case "group-delete": detailText = "Group deleted: " + (d.name || ""); break;
+              case "group-edit":
+              if (d.field === "name") {
+                detailText = "Group Name Changed From " + d.fromValue + " to " + d.toValue;
+              } else {
+                detailText = "Group field " + d.field + " changed from " + d.fromValue + " to " + d.toValue;
+              }
+              break;
+
+              case "team-edit":
+              if (d.field === "role") {
+                detailText = "Team Role Changed From " + d.fromValue + " to " + d.toValue;
+              } else if (d.field === "name") {
+                detailText = "Team Member Name Changed From " + d.fromValue + " to " + d.toValue;
+              } else {
+                detailText = "Team edited";
+              }
+              break;
+
+              case "project-create": detailText = "Project created: " + (d.name || ""); break;
+              case "project-delete": detailText = "Project deleted: " + (d.name || ""); break;
+              case "project-name-change":
+              detailText = "Project Name Changed From " + (d.from || "") + " to " + (d.to || "");
+              break;
+              case "project-start-change":
+              detailText = "Project Start Date Changed From " + (d.from || "") + " to " + (d.to || "");
+              break;
+              case "project-end-change":
+              detailText = "Project End Date Changed From " + (d.from || "") + " to " + (d.to || "");
+              break;
+              case "project-po-added":
+              detailText = "Added PO Number: " + (d.poNumber || "");
+              break;
+              case "project-po-change":
+              detailText = "PO Number Changed From " + (d.from || "") + " to " + (d.to || "");
+              break;
+
+              case "milestone-add": detailText = "Milestone added: " + (d.label || ""); break;
+              case "milestone-edit":
+              if (d.field === "label" && d.fromValue && d.toValue && d.fromValue !== d.toValue) {
+                detailText = "Milestone Name Changed From " + d.fromValue + " to " + d.toValue;
+              } else if (d.field === "date" && d.fromValue !== d.toValue) {
+                detailText = "Milestone Date Changed From " + d.fromValue + " to " + d.toValue;
+              } else if (d.field === "status" && d.fromValue !== d.toValue) {
+                detailText = "Status Changed From " + d.fromValue + " to " + d.toValue;
+              } else {
+                detailText = "Milestone edited: " + (d.toValue || d.label || "");
+              }
+              break;
+              case "milestone-status-change":
+              detailText = "Milestone Status Changed From " + (d.from || "") + " to " + (d.to || "");
+              break;
+              case "milestone-delete": detailText = "Milestone deleted: " + (d.label || ""); break;
+              default: detailText = JSON.stringify(d);
+            }
+
+            html += "<tr>" +
+                      "<td>" + time + "</td>" +
+                      "<td>" + (l.user || "unknown") + "</td>" +
+                      "<td>" + l.type + "</td>" +
+                      "<td>" + detailText + "</td>" +
+                    "</tr>";
+          });
+
+          html += "</table>";
+          container.innerHTML = html;
+        }
+
+        let logsVisible = false;
+        let currentDate = null;
+
+        async function refreshLogDropdown(groupName) {
+          try {
+            const res = await fetch("/api/logs");
+            const allLogs = await res.json();
+
+            console.log("Logs returned from server:", allLogs);
+
+            const dates = Array.from(new Set(
+          allLogs
+            .filter(l => {
+              // Always include group-create and group-delete regardless of group
+              if (l.type === "group-create" || l.type === "group-delete") return true;
+
+              if (!l.group) return false;
+              return (
+                l.group.toLowerCase() === groupName.toLowerCase() ||
+                l.group.toLowerCase() === "unknowngroup"
+              );
+            })
+            .map(l => l.date)
+        )).sort().reverse();
+
+            const dd = document.getElementById("logDropdown");
+            dd.innerHTML = "";
+
+            if (dates.length === 0) {
+              const opt = document.createElement("option");
+              opt.textContent = "No logs available for " + groupName;
+              opt.disabled = true;
+              dd.appendChild(opt);
+            } else {
+              dates.forEach(d => {
+                const opt = document.createElement("option");
+                opt.value = d;
+                opt.textContent = d;
+                dd.appendChild(opt);
+              });
+            }
+          } catch (err) {
+            console.error("Failed to refresh dropdown:", err);
+          }
+        }
+
+document.getElementById("btnViewLogs").onclick = () => {
+  const dd = document.getElementById("logDropdown");
+  if (!dd || !dd.value) return;
+
+  const date = dd.value;
+  const container = document.getElementById("logContent");
+
+  if (!logsVisible) {
+    // First time viewing logs
+    viewCompiledLogs(date);
+    logsVisible = true;
+    currentDate = date;
+    document.getElementById("btnViewLogs").textContent = "Hide Logs";
+  } else if (currentDate !== date) {
+    // Different date selected - switch to new logs
+    viewCompiledLogs(date);
+    currentDate = date;
+    // Keep button as "Hide Logs" since logs are still visible
+  } else {
+    // Same date clicked - toggle visibility
+    container.innerHTML = "";
+    logsVisible = false;
+    currentDate = null;
+    document.getElementById("btnViewLogs").textContent = "View Logs";
+  }
+};
+
+// Auto-switch logs when dropdown changes
+document.getElementById("logDropdown").onchange = () => {
+  const dd = document.getElementById("logDropdown");
+  if (!dd || !dd.value) return;
+
+  // Only auto-switch if logs are currently visible
+  if (logsVisible) {
+    const newDate = dd.value;
+    if (currentDate !== newDate) {
+      viewCompiledLogs(newDate);
+      currentDate = newDate;
+    }
+  }
+};
+
+        document.getElementById("btnDeleteLogs").onclick = async () => {
+          const dd = document.getElementById("logDropdown");
+          if (!dd || !dd.value) {
+            alert("Please select a log date to delete.");
+            return;
+          }
+          
+          const selectedDate = dd.value;
+          const password = prompt("Enter password to delete logs:");
+          if (password !== "guest820") {
+            alert("Incorrect password. Logs were not deleted.");
+            return;
+          }
+
+          if (!confirm("Are you sure you want to delete ALL logs for " + groupName + " on " + selectedDate + "? This cannot be undone.")) return;
+
+          try {
+            const response = await fetch("/api/logs/" + encodeURIComponent(groupName) + "/" + encodeURIComponent(selectedDate), {
+              method: "DELETE"
+            });
+
+            if (!response.ok) throw new Error("Server delete failed");
+
+            for (let i = logs.length - 1; i >= 0; i--) {
+              const log = logs[i];
+              if (log.date === selectedDate) {
+                let shouldDelete = false;
+                
+                if (log.type === "group-create" || log.type === "group-delete") {
+                  shouldDelete = true;
+                } else if (log.group && log.group.toLowerCase() === groupName.toLowerCase()) {
+                  shouldDelete = true;
+                } else if (!log.group || log.group.toLowerCase() === "unknowngroup") {
+                  shouldDelete = true;
+                }
+                
+                if (shouldDelete) {
+                  logs.splice(i, 1);
+                }
+              }
+            }
+
+            document.getElementById("logContent").innerHTML = "";
+            refreshLogDropdown(groupName);
+            alert("Logs deleted successfully.");
+            
+          } catch (error) {
+            alert("Failed to delete logs. Please try again.");
+          }
+        };
+        document.addEventListener("DOMContentLoaded", () => {
+          refreshLogDropdown(groupName);
+          console.log("✅ Dropdown initialized for", groupName);
+        });
+
+        document.getElementById("btnExportLogs").onclick = function () {
+          var dd = document.getElementById("logDropdown");
+          if (!dd || !dd.value) {
+            alert("Please select a log date to export.");
+            return;
+          }
+          var date = dd.value;
+
+          var logsForDate = logs.filter(l => {
+            if (l.date !== date) return false;
+            if (!l.group) return true;
+            return (
+              l.group.toLowerCase() === groupName.toLowerCase() ||
+              l.group.toLowerCase() === "unknowngroup"
+            );
+          }).sort((a, b) => a.ts - b.ts);
+
+          var logsSorted = logsForDate;
+
+          if (!logsSorted.length) {
+            alert("No logs available for " + date);
+            return;
+          }
+
+          var csv = "Time,User,Type,Details\\n";
+          for (var i = 0; i < logsSorted.length; i++) {
+            var l = logsSorted[i];
+            var time = new Date(l.ts).toLocaleString();
+            var user = l.user || "";
+            var type = l.type || "";
+            var details = "";
+            try {
+              details = (type === "invalid-login")
+                ? ("Invalid login attempt by user: " + (((l.details && l.details.attemptedUser) || "(blank)")).toString().replace(/"/g, "''"))
+                : JSON.stringify(l.details).replace(/"/g, "''");
+            } catch (e) {}
+            csv += time + "," + user + "," + type + "," + details + "\\n";
+          }
+
+          var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement("a");
+          link.href = url;
+          link.download = groupName + "_" + date + "_logs.csv";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        };
+      <\/script>
+    </body>
+  </html>
+`);
+
+newTab.document.close();
+
+// 🔄 Also push the current in-memory data immediately
+if (newTab.renderReport) {
+  newTab.renderReport(g);
+}
+}
+
+
+// 🔧 manual styling and positioning relative to timeline left edge
+compileBtn.style.position = "absolute";
+compileBtn.style.left = (sidePad + 105) + "px";  // 👈 adjust this number to set distance from left edge
+compileBtn.style.top = (y - 42) + "px";          // 👈 adjust this number to align vertically with group label
+compileBtn.style.fontSize = "0.7rem";
+compileBtn.style.padding = "2px 6px";
+compileBtn.style.cursor = "pointer";
+compileBtn.className = "group-" + gi;
+wrapper.appendChild(compileBtn);
+}
+
+(g.projects || []).forEach((p, pi) => {
+  
+// Create project container with blue border - full width of group card
+const projectContainer = document.createElement("div");
+projectContainer.className = "project-container group-" + gi;
+projectContainer.style.position = "absolute";
+projectContainer.style.left = (sidePad + 10) + "px";  // Group card left + padding
+projectContainer.style.top = (y - 20) + "px";         // Start above project name
+projectContainer.style.width = (wrapper.clientWidth - sidePad * 2 - 20) + "px"; // Full group card width minus padding
+projectContainer.style.height = (BAR_HEIGHT + 13) + "px"; // Reduced height
+projectContainer.style.border = "1px solid blue";     // Thinner border
+projectContainer.style.borderRadius = "4px";
+projectContainer.style.backgroundColor = "transparent";
+projectContainer.style.pointerEvents = "none";        // Don't interfere with clicks
+projectContainer.style.zIndex = "1";                  // Ensure it's behind other elements
+wrapper.appendChild(projectContainer);
+
+  // project name
+  const projName = document.createElement("span");
+  projName.className = "absolute group-" + gi;
+  projName.style.left = (sidePad + 20) + "px";
+  projName.style.top = (y + BAR_HEIGHT/2 - 28) + "px";
+  projName.style.width = labelColWidth + "px";
+  projName.style.textAlign = "right";
+  projName.style.fontSize = ".75rem";
+  projName.style.fontWeight = "bold";
+  projName.style.color = "#c98b24";
+  projName.textContent = p.name;
+  wrapper.appendChild(projName);
+
+// PO number display
+if (p.poNumber) {
+  const poNumber = document.createElement("span");
+  poNumber.className = "absolute group-" + gi;
+  poNumber.className = "absolute";
+  poNumber.style.left = (sidePad + 20) + "px";
+  poNumber.style.top = (y + BAR_HEIGHT/2 - 12) + "px";  
+  poNumber.style.width = labelColWidth + "px";
+  poNumber.style.textAlign = "right";
+  poNumber.style.fontSize = "0.75rem";
+  poNumber.style.fontWeight = "bold";
+  poNumber.style.color = "#c98b24";  
+  poNumber.textContent = "" + p.poNumber;
+  wrapper.appendChild(poNumber);
+}
+
+// start date label
+if (p.startDate) {
+  const startLabel = document.createElement("span");
+  startLabel.className = "absolute group-" + gi;
+  startLabel.style.left = (barXBase + 150) + "px";
+  startLabel.style.top  = (y - 10) + "px";
+  startLabel.style.transform = "translateX(-100%) translateY(-50%)";
+  startLabel.style.fontSize = "0.8rem";
+  startLabel.style.color = "#000000";
+  const formatTimelineDate = (dateStr) => {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split('-');
+    return `${month}/${day}/${year}`;
+  };
+
+  startLabel.textContent = "Start Date: " + formatTimelineDate(p.startDate);
+  wrapper.appendChild(startLabel);
+}
+
+// end date label (below start date)
+if (p.completionDate) {
+  const endLabel = document.createElement("span");
+  endLabel.className = "absolute group-" + gi;
+  endLabel.style.left = (barXBase + 150) + "px";
+  endLabel.style.top  = (y + 8) + "px";  // Position below start date
+  endLabel.style.transform = "translateX(-100%) translateY(-50%)";
+  endLabel.style.fontSize = "0.8rem";
+  endLabel.style.color = "#000000";
+  const formatTimelineDate2 = (dateStr) => {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split('-');
+    return `${month}/${day}/${year}`;
+  };
+
+  endLabel.textContent = "End Date: " + formatTimelineDate2(p.completionDate);
+  wrapper.appendChild(endLabel);
+}
+
+// Display comments after the last milestone
+if (p.comments && Array.isArray(p.milestones) && p.milestones.length > 0) {
+  const milestoneWidth = 200;
+  const milestoneSpacing = 225;
+  const startX = barXBase + 160;
+  
+  // Calculate position after last milestone
+  const lastMilestoneX = startX + (p.milestones.length - 1) * milestoneSpacing + milestoneWidth;
+  const commentsStartX = lastMilestoneX + 20;
+  
+  // Calculate positions relative to blue border
+  const projectContainerRightEdge = sidePad + 10 + (wrapper.clientWidth - sidePad * 2 - 20);
+  const arrowX = projectContainerRightEdge - 25; // Arrow fixed 25px from right edge
+  const maxCommentWidth = arrowX - commentsStartX - 10; // Space between comment start and arrow
+  
+  if (maxCommentWidth > 50) { // Only show if there's enough space
+    // Comment preview text
+    const commentsPreview = document.createElement("span");
+    commentsPreview.className = "absolute comment-preview group-" + gi;
+    commentsPreview.style.left = commentsStartX + "px";
+    commentsPreview.style.top = (y - 17) + "px";
+    commentsPreview.style.maxWidth = maxCommentWidth + "px";
+    commentsPreview.textContent = p.comments;
+    wrapper.appendChild(commentsPreview);
+    
+    // Arrow fixed to right edge
+    const arrow = document.createElement("span");
+    arrow.className = "absolute comment-arrow group-" + gi;
+    arrow.style.left = arrowX + "px";
+    arrow.style.top = (y - 17) + "px";
+    arrow.textContent = "▼";
+    wrapper.appendChild(arrow);
+    
+    // Popup box (positioned relative to arrow)
+    const popup = document.createElement("div");
+    popup.className = "absolute comment-popup group-" + gi;
+    popup.style.left = (arrowX - 150) + "px"; // Popup extends left from arrow
+    popup.style.top = (y + 10) + "px";
+    popup.textContent = p.comments;
+    popup.style.display = "none";
+    wrapper.appendChild(popup);
+    
+    // Toggle expand/collapse
+    arrow.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isExpanded = popup.style.display === "block";
+      popup.style.display = isExpanded ? "none" : "block";
+      arrow.classList.toggle('expanded');
+    });
+    
+    // Close popup when clicking outside
+    document.addEventListener('click', (e) => {
+      if (e.target !== arrow && e.target !== popup) {
+        popup.style.display = "none";
+        arrow.classList.remove('expanded');
+      }
+    });
+  }
+}
+const barX = barXBase;
+
+// 🔧 SIMPLE TV FIX - Direct screen width detection with debug
+let tvPadding = 30; // Default for PC monitors
+console.log(`Screen width detected: ${window.screen.width}px`);
+
+if (window.screen.width >= 1920) {
+  tvPadding = 30; // Large screens (TVs) - increase this if still too wide
+  console.log(`TV detected! Using ${tvPadding}px padding`);
+}
+if (window.screen.width >= 3840) {
+  tvPadding = 300; // 4K TVs
+  console.log(`4K TV detected! Using ${tvPadding}px padding`);
+}
+
+
+const barW = Math.max(200, wrapper.clientWidth - barX - sidePad - tvPadding);
+
+
+  // fill, milestones, ticks
+  if (p.startDate && p.completionDate) {
+    const start = parseLocalDate(p.startDate);
+    const end   = parseLocalDate(p.completionDate);
+
+    const totalDays = Math.max(1, Math.ceil(
+      (Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()) -
+       Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())) / DAY_MS
+    ));
+
+
+// milestones FIRST
+if (Array.isArray(p.milestones)) {
+  const milestoneCount = p.milestones.length;
+  
+  // Calculate dynamic sizing based on milestone count
+  let milestoneWidth = 200;
+  let milestoneSpacing = 225;
+  let fontSize = "14px";
+  
+  if (milestoneCount > 5) {
+    // Scale down as more milestones are added
+    const scaleFactor = Math.max(0.5, 1 - ((milestoneCount - 5) * 0.08)); // Reduces by 8% per milestone over 5
+    milestoneWidth = Math.floor(200 * scaleFactor);
+    milestoneSpacing = Math.floor(225 * scaleFactor);
+    fontSize = Math.floor(14 * scaleFactor) + "px";
+  }
+  
+  const startX = barXBase + 160;
+
+  // Sort milestones by date (earliest first)
+  const sortedMilestones = [...p.milestones].sort((a, b) => {
+    const dateA = a.date || a.startDate;
+    const dateB = b.date || b.startDate;
+    
+    // Put milestones without dates at the end
+    if (!dateA && !dateB) return 0;
+    if (!dateA) return 1;
+    if (!dateB) return -1;
+    
+    // Sort by date (earliest first)
+    return new Date(dateA) - new Date(dateB);
+  });
+
+sortedMilestones.forEach((m, mi) => {
+    // Calculate days remaining and color
+    let daysText = "";
+    let backgroundColor = "gray";
+    let pulseClass = "";
+    
+    if (m.date) {
+      const today = new Date();
+      const dueDate = parseLocalDate(m.date);
+      const diffTime = dueDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+// Check if milestone is completed first
+if (m.status === 'completed') {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to start of day
+  
+  const dueDate = parseLocalDate(m.date);
+  dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
+  
+  // Calculate days difference
+  const diffTime = dueDate - today;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays > 0) {
+    // Completed early
+    daysText = `Complete -${diffDays}`;
+    backgroundColor = "white";
+    pulseClass += " milestone-completed-ontime";
+  } else if (diffDays === 0) {
+    // Completed on due date
+    daysText = "Complete 0";
+    backgroundColor = "white";
+    pulseClass += " milestone-completed-ontime";
+  } else {
+    // Completed late
+    daysText = `Complete +${Math.abs(diffDays)}`;
+    backgroundColor = "white";
+    pulseClass += " milestone-completed-late";
+  }
+} else {
+  // Original logic for incomplete milestones
+  if (diffDays > 30) {
+    daysText = `${diffDays} Days Remaining`;
+    backgroundColor = "#63f298";
+  } else if (diffDays > 5) {
+    daysText = `${diffDays} Days Remaining`;
+    backgroundColor = "orange";
+  } else if (diffDays > 0) {
+    daysText = `${diffDays} Days Remaining`;
+    backgroundColor = "orange";
+    pulseClass = " milestone-pulse";
+  } else if (diffDays === 0) {
+    daysText = "Due Today";
+    backgroundColor = "#a3d7d9";
+    pulseClass = " milestone-pulse";
+  } else {
+    daysText = `${Math.abs(diffDays)} Days Overdue`;
+    backgroundColor = "red";
+  }
+}
+    }
+// Milestone Colored Box
+const ms = document.createElement("div");
+ms.className = "milestone group-" + gi + pulseClass;
+ms.style.left = (startX + mi * milestoneSpacing) + "px";
+ms.style.top  = (y - 17) + "px";
+ms.style.width = milestoneWidth + "px";
+ms.style.height = BAR_HEIGHT + "px";
+ms.style.display = "flex";
+ms.style.flexDirection = "row";
+ms.style.alignItems = "center";
+ms.style.justifyContent = "space-between";
+ms.style.gap = "2px";
+ms.style.fontSize = "8px";
+ms.style.color = "black";
+ms.style.fontWeight = "bold";
+ms.style.textAlign = "center";
+ms.style.background = backgroundColor;
+if (m.status === 'completed') {
+  ms.style.border = "2px solid black";
+}
+ms.style.borderRadius = "4px";
+ms.style.padding = "4px";
+
+// Add milestone label inside the box
+const labelDiv = document.createElement("div");
+labelDiv.style.fontSize = fontSize;  // Use dynamic fontSize
+labelDiv.style.lineHeight = "1";
+labelDiv.textContent = m.label || "";
+
+const daysDiv = document.createElement("div");
+daysDiv.style.fontSize = fontSize;  // Use dynamic fontSize
+daysDiv.style.lineHeight = "1";
+daysDiv.textContent = daysText;
+
+ms.appendChild(labelDiv);
+ms.appendChild(daysDiv);
+wrapper.appendChild(ms);  });
+}
+}
+
+  y += BAR_HEIGHT + GAP;
+}); 
+
+// group card expansion
+const lastRowBottom = y - (BAR_HEIGHT + GAP);
+const height = Math.max(0, (lastRowBottom + (BAR_HEIGHT + GAP) - groupStartY) + 12);
+card.style.height = `${height}px`;
+
+groupCardRegions.push({
+  el: card,
+  x1: card.offsetLeft, x2: card.offsetLeft + card.offsetWidth,
+  y1: card.offsetTop,  y2: card.offsetTop + card.offsetHeight
+});
+
+y += 60; 
+  }); 
+} 
+ 
+  /* ===================== GROUP MODAL: PROJECT LIST + ACTIONS ===================== */
+  function renderGroupProjectList(gi) {
+    const holder = document.getElementById("groupProjectList");
+    if (!holder) return;
+
+    // If creating a new group (no index yet), show helper text
+    if (gi == null || gi === undefined) {
+      holder.innerHTML =
+        '<div class="proj-row" aria-disabled="true">' +
+        '<span>No projects yet. Save this group, then click “New Project”.</span>' +
+        "</div>";
+      return;
+    }
+
+    const g = groups[gi];
+    holder.innerHTML = "";
+
+    (g.projects || []).forEach((p, pi) => {
+      const row = document.createElement("div");
+      row.className = "proj-row";
+
+const name = document.createElement("span");
+const projectName = p.name || "Untitled Project";
+const poNumber = p.poNumber ? ` (${p.poNumber})` : "";
+name.textContent = projectName + poNumber;
+
+      const dates = document.createElement("span");
+      dates.style.flex = "0 0 auto";
+      dates.style.fontSize = "0.75rem";
+      dates.style.color = "#000000";
+      const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split('-');
+  return `${month}/${day}/${year}`;
+};
+
+dates.innerHTML = `Start Date: ${formatDate(p.startDate)}<br>End Date: ${formatDate(p.completionDate)}`;
+
+      const edit = document.createElement("button");
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => openProjectModal(gi, pi));
+
+const del = document.createElement("button");
+del.className = "danger";
+del.textContent = "Delete";
+del.addEventListener("click", () => {
+  if (!confirm("Delete this project?")) return;
+
+  // 🔥 Add a log entry for project delete (capture details before removing)
+  const deletedProject = g.projects[pi];
+  addLogEntry(g.name,"project-delete", {
+    groupIndex: gi,
+    projectIndex: pi,
+    name: deletedProject?.name || "Untitled Project",
+    startDate: deletedProject?.startDate || "",
+    completionDate: deletedProject?.completionDate || ""
+  });
+
+  g.projects.splice(pi, 1);
+  saveData();
+  renderGroupProjectList(gi);
+  render();
+});
+      row.appendChild(name);
+      row.appendChild(dates);
+      row.appendChild(edit);
+      row.appendChild(del);
+      holder.appendChild(row);
+    });
+  }
+  
+  /* ===================== GROUP MODAL: OPEN / SAVE / DELETE (OFFLINE) ===================== */
+  function setGroupModalControlsDisabled(disabled){
+    ["btnGroupEditTeam","btnGroupNewProject",
+     "btnGroupSave","btnGroupDelete","btnGroupClose"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = !!disabled;
+    });
+  }
+
+  function openTeamFromGroup(){
+    if (!contextTarget || contextTarget.groupIndex == null) return;
+    openTeamModal(contextTarget.groupIndex);
+  }
+
+  function newProjectFromGroup(){
+    if (!contextTarget || contextTarget.groupIndex == null) return;
+    const gi = contextTarget.groupIndex;
+    contextTarget = { groupIndex: gi, projectIndex: null };
+    openProjectModal(gi, null);
+  }
+
+function openGroupModal(gi) {
+  // Allow admin and teamlead to open group modal
+  if (userRole !== "admin" && userRole !== "teamlead") { return; }
+
+  contextTarget = { groupIndex: gi };
+  const g = groups[gi];
+  const nameInp = document.getElementById("groupNameInput");
+  if (nameInp instanceof HTMLInputElement) nameInp.value = g?.name || "";
+  renderGroupProjectList(gi);
+  setGroupModalControlsDisabled(false);
+  openModal("groupModal");
+  
+  // Apply permissions after modal opens
+  setTimeout(() => applyPermissions(), 10);
+}
+
+  function closeGroupModal() { closeModal("groupModal"); }
+
+function newGroup() {
+  const newGroup = { name: "New Group", projects: [], teamMembers: [] };
+  groups.push(newGroup);
+
+  // 🔄 Log creation immediately
+  addLogEntry(newGroup.name, "group-create", { name: newGroup.name });
+  compileDailyLogs();
+
+  saveData();
+  render();
+
+  // Open modal to edit right away
+  contextTarget = { groupIndex: groups.length - 1 };
+  openGroupModal(groups.length - 1);
+}
+
+// DELETE GROUP//
+function deleteGroup() {
+  if (!contextTarget || contextTarget.groupIndex == null) {
+    alert("No group selected to delete.");
+    return;
+  }
+  const gi = contextTarget.groupIndex;
+  const g = groups[gi];
+  if (confirm("Delete group " + g.name + "?")) {
+        groups.splice(gi, 1);
+    addLogEntry(g.name, "group-delete", { name: g.name });
+    saveData();
+    closeGroupModal();
+    render();
+  }
+}
+
+
+// --- Wire Group Modal Buttons ---
+(function wireGroupModalButtons() {
+  const btnSave   = document.getElementById("btnGroupSave");
+  const btnClose  = document.getElementById("btnGroupClose");
+  const btnDelete = document.getElementById("btnGroupDelete");
+  const btnNewGroup = document.getElementById("btnNewGroup");
+  if (btnNewGroup) btnNewGroup.onclick = newGroup;
+  const btnEditTeam = document.getElementById("btnGroupEditTeam");
+  const btnNewProj = document.getElementById("btnGroupNewProject");
+  if (btnNewProj) btnNewProj.onclick = () => newProjectFromGroup();
+  if (btnEditTeam) btnEditTeam.onclick = () => openTeamFromGroup();
+  if (btnSave)   btnSave.onclick   = saveGroup;
+  if (btnClose)  btnClose.onclick  = () => closeGroupModal();
+  if (btnDelete) btnDelete.onclick = deleteGroup;
+  
+  const btnApplyName = document.getElementById("btnApplyGroupName");
+if (btnApplyName) {
+  btnApplyName.onclick = () => {
+    if (!contextTarget || contextTarget.groupIndex == null) return;
+
+    const gi = contextTarget.groupIndex;
+    const nameInp = document.getElementById("groupNameInput");
+
+    if (nameInp instanceof HTMLInputElement) {
+      const newName = nameInp.value.trim();
+      if (newName) {
+        const oldName = groups[gi].name || "";
+        groups[gi].name = newName;
+
+        // Log group name change
+        if (oldName !== newName) {
+          addLogEntry(groups[gi].name, "group-edit", {
+            groupIndex: gi,
+            field: "name",
+            fromValue: oldName,
+            toValue: newName
+          });
+        }
+
+        saveData();
+        render();
+      }
+    }
+  };
+}
+})();
+
+
+  /* ===================== TEAM MODAL ===================== */
+function renderTeamList(gi) {
+  const list = document.getElementById('memberList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const g = groups[gi];
+  (g.teamMembers || []).forEach((m, idx) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.gap = '8px';
+
+    const who = document.createElement('span');
+    who.textContent = `${m.role || ''} ${m.name || ''}`.trim();
+    row.appendChild(who);
+
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.addEventListener('click', () => {
+  const roleInp = document.getElementById('roleInput');
+  const nameInp = document.getElementById('memberName');
+  if (roleInp instanceof HTMLInputElement) roleInp.value = m.role;
+  if (nameInp instanceof HTMLInputElement) nameInp.value = m.name;
+  editingMemberIndex = idx;
+
+  // Show Apply Edit, hide Add Member
+  const btnSave = document.getElementById('btnTeamSave');
+  const btnApply = document.getElementById('btnTeamApply');
+  if (btnSave) btnSave.style.display = 'none';
+  if (btnApply) btnApply.style.display = 'inline-block';
+});
+
+    row.appendChild(edit);
+
+// --- Delete button ---
+const del = document.createElement('button');
+del.className = 'danger';
+del.textContent = 'Delete';
+del.addEventListener('click', () => {
+  if (!confirm('Remove this team member?')) return;
+
+  const removed = g.teamMembers[idx];  // ✅ correct array and index
+
+  // ✅ Log team member removal
+  addLogEntry(g.name, "team-remove", {
+    groupIndex: gi,
+    teamIndex: idx,
+    name: removed?.name || ""
+  });
+  compileDailyLogs();
+  g.teamMembers.splice(idx, 1);       // ✅ remove from correct array
+  saveData();
+  renderTeamList(gi); // re-render the team modal
+  render();
+});
+row.appendChild(del);
+
+    list.appendChild(row);
+  });
+}
+
+function openTeamModal(gi) {
+  contextTarget = { groupIndex: gi };
+  const g = groups[gi];
+
+  const roleInp = document.getElementById('roleInput');
+  const nameInp = document.getElementById('memberName');
+  if (roleInp) roleInp.value = '';
+  if (nameInp) nameInp.value = '';
+
+  renderTeamList(gi);
+  openModal('teamModal');
+
+  const saveBtn  = document.getElementById('btnTeamSave');
+  const applyBtn = document.getElementById('btnTeamApply');
+  const closeBtn = document.getElementById('btnTeamClose');
+
+  if (saveBtn) {
+    saveBtn.onclick = () => {
+      const role = (roleInp instanceof HTMLInputElement && roleInp.value.trim())
+        ? roleInp.value.trim()
+        : 'MEMBER';
+      const name = (nameInp instanceof HTMLInputElement && nameInp.value.trim())
+        ? nameInp.value.trim()
+        : '';
+      if (!name) { alert('Enter a name.'); return; }
+
+     (g.teamMembers = g.teamMembers || []).push({ role, name });
+const newIdx = g.teamMembers.length - 1;
+
+// ✅ Log team member addition
+addLogEntry(g.name, "team-add", {
+  groupIndex: gi,
+  teamIndex: newIdx,
+  role,
+  name
+});
+compileDailyLogs();
+
+saveData();
+roleInp.value = '';
+nameInp.value = '';
+renderTeamList(gi);
+render();
+
+    };
+  }
+
+  if (applyBtn) {
+    applyBtn.onclick = () => {
+      const role = (roleInp instanceof HTMLInputElement && roleInp.value.trim())
+        ? roleInp.value.trim()
+        : 'MEMBER';
+      const name = (nameInp instanceof HTMLInputElement && nameInp.value.trim())
+        ? nameInp.value.trim()
+        : '';
+      if (!name) { alert('Enter a name.'); return; }
+
+      if (editingMemberIndex != null) {
+  const oldMember = { ...g.teamMembers[editingMemberIndex] };
+
+  g.teamMembers[editingMemberIndex] = { role, name };
+
+  // Log role change separately
+  if (oldMember.role !== role) {
+    addLogEntry(g.name, "team-edit", {
+      groupIndex: gi,
+      teamIndex: editingMemberIndex,
+      field: "role",
+      fromValue: oldMember.role,
+      toValue: role
+    });
+  }
+
+  // Log name change separately
+  if (oldMember.name !== name) {
+    addLogEntry(g.name, "team-edit", {
+      groupIndex: gi,
+      teamIndex: editingMemberIndex,
+      field: "name",
+      fromValue: oldMember.name,
+      toValue: name
+    });
+  }
+
+  editingMemberIndex = null;
+}
+
+
+      saveData();
+      roleInp.value = '';
+      nameInp.value = '';
+      renderTeamList(gi);
+      render();
+
+      // Reset buttons
+      if (saveBtn) saveBtn.style.display = 'inline-block';
+      if (applyBtn) applyBtn.style.display = 'none';
+    };
+  }
+
+  if (closeBtn) {
+    if (closeBtn) closeBtn.onclick = () => closeModal('teamModal');
+  }
+}
+
+function renderMilestoneList(gi, pi) {
+  const holder = document.getElementById('milestoneList');
+  if (!holder) return;
+  holder.innerHTML = '';
+
+  const g = groups[gi];
+const p = g?.projects?.[pi];
+
+ // Sort milestones by date, putting those without dates at the end
+const sortedMilestones = (p?.milestones || []).map((milestone, index) => ({
+  ...milestone,
+  originalIndex: index
+})).sort((a, b) => {
+  const dateA = a.date || a.startDate;
+  const dateB = b.date || b.startDate;
+  
+  // Put milestones without dates at the end
+  if (!dateA && !dateB) return 0;
+  if (!dateA) return 1;
+  if (!dateB) return -1;
+  
+  // Sort by date
+  return new Date(dateA) - new Date(dateB);
+});
+
+sortedMilestones.forEach((m, displayIndex) => {
+  const mi = m.originalIndex; // Use original index for editing/deleting
+    const row = document.createElement('div');
+
+    // --- Milestone label ---
+    const label = document.createElement('span');
+    const range = [];
+    if (m.startDate)      range.push(m.startDate);
+    if (m.completionDate) range.push(m.completionDate);
+    const rangeText = range.length ? ` (${range.join(' → ')})` : (m.date ? ` (${m.date})` : '');
+    label.textContent = `${m.label || 'Milestone'}${rangeText}`;
+    row.appendChild(label);
+
+    // --- Edit button ---
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.addEventListener('click', () => openMilestoneModal(gi, pi, mi));
+    row.appendChild(edit);
+
+// default status if not set
+const today = new Date();
+const dueDate = m.date ? parseLocalDate(m.date) : null;
+const isUpcoming = dueDate && today <= dueDate;
+
+if (!m.status) {
+  m.status = isUpcoming ? 'incomplete' : 'overdue';
+}
+
+// --- Toggle Complete button ---
+const toggle = document.createElement('button');
+
+// Replicate exact milestone bar logic
+let daysText = "";
+let backgroundColor = "gray";
+let textColor = "white";
+let borderStyle = "none";
+
+if (m.date) {
+  const today = new Date();
+  const dueDate = parseLocalDate(m.date);
+  const diffTime = dueDate - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (m.status === 'completed') {
+    const todayNorm = new Date();
+    todayNorm.setHours(0, 0, 0, 0);
+    const dueDateNorm = parseLocalDate(m.date);
+    dueDateNorm.setHours(0, 0, 0, 0);
+    
+    const diffTimeNorm = dueDateNorm - todayNorm;
+    const diffDaysNorm = Math.round(diffTimeNorm / (1000 * 60 * 60 * 24));
+    
+    if (diffDaysNorm > 0) {
+      daysText = `Complete -${diffDaysNorm}`;
+      backgroundColor = 'repeating-linear-gradient(45deg, white, white 10px, rgba(25, 135, 84, 0.2) 10px, rgba(25, 135, 84, 0.2) 20px)';
+      borderStyle = '2px solid black';
+      textColor = 'black';
+    } else if (diffDaysNorm === 0) {
+      daysText = "Complete 0";
+      backgroundColor = 'repeating-linear-gradient(45deg, white, white 10px, rgba(25, 135, 84, 0.2) 10px, rgba(25, 135, 84, 0.2) 20px)';
+      borderStyle = '2px solid black';
+      textColor = 'black';
+    } else {
+      daysText = `Complete +${Math.abs(diffDaysNorm)}`;
+      backgroundColor = 'repeating-linear-gradient(45deg, white, white 10px, rgba(220, 53, 69, 0.2) 10px, rgba(220, 53, 69, 0.2) 20px)';
+      borderStyle = '2px solid black';
+      textColor = 'black';
+    }
+  } else {
+    // Incomplete logic
+    if (diffDays > 30) {
+      daysText = `${diffDays} Days Remaining`;
+      backgroundColor = "#63f298";
+      textColor = "black";
+    } else if (diffDays > 5) {
+      daysText = `${diffDays} Days Remaining`;
+      backgroundColor = "orange";
+      textColor = "black";
+    } else if (diffDays > 0) {
+      daysText = `${diffDays} Days Remaining`;
+      backgroundColor = "orange";
+      textColor = "black";
+    } else if (diffDays === 0) {
+      daysText = "Due Today";
+      backgroundColor = "#a3d7d9";
+      textColor = "black";
+    } else {
+      daysText = `${Math.abs(diffDays)} Days Overdue`;
+      backgroundColor = "red";
+      textColor = "white";
+    }
+  }
+}
+
+toggle.textContent = daysText || "Toggle Complete";
+toggle.style.background = backgroundColor;
+toggle.style.border = borderStyle;
+toggle.style.color = textColor;
+toggle.style.minWidth = "120px";
+
+toggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  
+  const oldStatus = m.status || 'incomplete';
+  let newStatus;
+  
+  if (oldStatus === 'completed') {
+    newStatus = 'incomplete';
+  } else {
+    newStatus = 'completed';
+    p.milestones[mi].completedOn = new Date().toISOString().split('T')[0];
+  }
+  
+  p.milestones[mi].status = newStatus;
+  
+  addLogEntry(g.name, "milestone-status-change", {
+    groupIndex: gi,
+    projectIndex: pi,
+    milestoneIndex: mi,
+    label: m.label || "",
+    from: oldStatus,
+    to: newStatus
+  });
+  
+  saveData();
+  renderMilestoneList(gi, pi);
+  render();
+});
+row.appendChild(toggle);
+
+    // --- Delete button ---
+    const del = document.createElement('button');
+    del.className = 'danger';
+    del.textContent = 'Delete';
+    del.addEventListener('click', () => {
+      if (!confirm('Delete this milestone?')) return;
+      p.milestones.splice(mi, 1);
+      saveData();
+      renderMilestoneList(gi, pi);
+      render();
+    });
+    row.appendChild(del);
+
+    holder.appendChild(row);
+  });
+}
+
+  function openMilestoneModal(gi, pi, mi = null) {
+    contextTarget = { groupIndex: gi, projectIndex: pi, milestoneIndex: mi };
+    // Store currently edited milestone index in a data-* attr on the modal for simplicity
+    const modal = document.getElementById('milestoneModal');
+    if (!modal) return;
+    modal.dataset.mi = (mi == null ? '' : String(mi));
+
+    const g = groups[gi];
+    const p = g?.projects?.[pi];
+    const m = (mi == null) ? { label:'', startDate:'', completionDate:'' } : (p?.milestones?.[mi] || {});
+
+    const nameInp  = document.getElementById('milestoneNameInput');
+    const startInp = document.getElementById('milestoneStartDate');
+    
+
+    if (nameInp  instanceof HTMLInputElement)  nameInp.value  = m.label || '';
+    if (startInp instanceof HTMLInputElement)  startInp.value = m.startDate || m.date || '';
+    
+
+    // Wire buttons (save/delete/close wired here; save logic in Section 7 will finalize)
+    const btnSave  = document.getElementById('btnMsSave');
+    const btnClose = document.getElementById('btnMsClose');
+    const btnDel   = document.getElementById('btnMsDelete');
+
+    if (btnSave) {
+      
+btnSave.onclick = () => {
+  const label = (nameInp instanceof HTMLInputElement) ? nameInp.value.trim() : '';
+  const s     = (startInp instanceof HTMLInputElement) ? startInp.value : '';
+
+  const payload = {
+    label,
+    date: s,
+    startDate: s
+  };
+
+  if (!Array.isArray(p.milestones)) p.milestones = [];
+
+  let idx = contextTarget.milestoneIndex;
+  
+if (idx == null || idx === '') {
+    // --- New milestone ---
+    payload.status = "incomplete"; // default for new
+    p.milestones.push(payload);
+    idx = p.milestones.length - 1;
+
+    const newMs = p.milestones[idx];
+    addLogEntry(g.name, "milestone-add", {
+      groupIndex: gi,
+      projectIndex: pi,
+      milestoneIndex: idx,
+      label: newMs.label || "",
+      date: newMs.date || "",
+      status: newMs.status || "incomplete"
+    });
+
+} else {
+    // --- Editing an existing milestone ---
+    const oldMs     = { ...p.milestones[idx] };
+    const oldLabel  = oldMs.label  || "";
+    const oldDate   = oldMs.date   || "";
+    const oldStatus = oldMs.status || "incomplete";
+
+    payload.status = oldMs.status || "incomplete";
+    p.milestones[idx] = payload;
+
+    const savedMilestone = p.milestones[idx];
+
+    if (oldLabel !== savedMilestone.label) {
+      addLogEntry(g.name, "milestone-edit", {
+        groupIndex: gi,
+        projectIndex: pi,
+        milestoneIndex: idx,
+        field: "label",
+        fromValue: oldLabel,
+        toValue: savedMilestone.label || ""
+      });
+    }
+
+    if (oldDate !== savedMilestone.date) {
+      addLogEntry(g.name, "milestone-edit", {
+        groupIndex: gi,
+        projectIndex: pi,
+        milestoneIndex: idx,
+        field: "date",
+        fromValue: oldDate,
+        toValue: savedMilestone.date || ""
+      });
+    }
+
+    if (oldStatus !== savedMilestone.status) {
+      addLogEntry(g.name, "milestone-edit", {
+        groupIndex: gi,
+        projectIndex: pi,
+        milestoneIndex: idx,
+        field: "status",
+        fromValue: oldStatus,
+        toValue: savedMilestone.status
+      });
+    }
+}
+
+  compileDailyLogs();
+  saveData();
+  renderMilestoneList(gi, pi);
+  render();
+  closeModal('milestoneModal');
+};
+    }
+
+    if (btnClose) btnClose.onclick = () => closeModal('milestoneModal');
+
+    openModal('milestoneModal');
+  }
+
+  /* ===================== PROJECT MODAL (OPEN/SAVE/DELETE) ===================== */
+  function openProjectModal(gi, pi) {
+    contextTarget = { groupIndex: gi, projectIndex: pi };
+    const g = groups[gi];
+
+const defaultMilestones = [
+  { label: "KICKOFF", date: "", status: "incomplete" },
+  { label: "WELD QC", date: "", status: "incomplete" },
+  { label: "PAINT QC", date: "", status: "incomplete" },
+  { label: "FINAL QC", date: "", status: "incomplete" },
+  { label: "PREP FOR SHIP", date: "", status: "incomplete" }
+];
+
+const p = (pi == null || pi === undefined) ? { 
+  name:'', 
+  startDate:'', 
+  completionDate:'', 
+  milestones: [...defaultMilestones] 
+} : g.projects[pi];
+
+    // Set modal title based on whether editing or adding
+const modalTitle = document.getElementById('projectModalTitle');
+if (modalTitle) {
+  modalTitle.textContent = (pi != null && pi !== undefined) ? "EDIT PROJECT" : "ADD PROJECT";
+}
+
+    const nameInp = document.getElementById('projectNameInput');
+    const start   = document.getElementById('projectStartDate');
+    const comp    = document.getElementById('projectCompletionDate');
+
+if (nameInp instanceof HTMLInputElement) nameInp.value = p.name || '';
+const poInp = document.getElementById('projectPOInput');
+if (poInp instanceof HTMLInputElement) poInp.value = p.poNumber || '';
+if (start   instanceof HTMLInputElement) start.value   = p.startDate || '';
+if (comp    instanceof HTMLInputElement) comp.value    = p.completionDate || '';
+const commentsInp = document.getElementById('projectComments');
+if (commentsInp instanceof HTMLTextAreaElement) commentsInp.value = p.comments || '';
+
+// Clear milestone list for new projects
+document.getElementById('milestoneList').innerHTML = '';
+
+// Render milestones for this project
+if (pi != null && pi !== undefined) {
+  renderMilestoneList(gi, pi);
+}
+    // Wire buttons
+    const btnSave  = document.getElementById('btnProjSave');
+    const btnClose = document.getElementById('btnProjClose');
+    const btnDel   = document.getElementById('btnProjDelete');
+    const btnAddMs = document.getElementById('btnProjAddMilestone');
+
+          if (btnSave) {
+       btnSave.onclick = () => {
+
+const payload = {
+  name: (nameInp instanceof HTMLInputElement) ? (nameInp.value.trim() || 'Project') : 'Project',
+  poNumber: (poInp instanceof HTMLInputElement) ? (poInp.value.trim() || '') : '',
+  startDate: (start instanceof HTMLInputElement) ? (start.value || '') : '',
+  completionDate: (comp instanceof HTMLInputElement) ? (comp.value || '') : '',
+  comments: (commentsInp instanceof HTMLTextAreaElement) ? (commentsInp.value.trim() || '') : '',
+  milestones: Array.isArray(p.milestones) && p.milestones.length > 0 ? p.milestones : [...defaultMilestones]
+};
+
+  let projectIndex;
+
+  if (pi == null || pi === undefined) {
+    // New project
+    g.projects.push(payload);
+    projectIndex = g.projects.length - 1;
+
+    addLogEntry(g.name, "project-create", {
+      groupIndex: gi,
+      projectIndex,
+      ...payload
+    });
+} else {
+  // --- Editing an existing project (DIFF + granular logs) ---
+  var prev = JSON.parse(JSON.stringify(g.projects[pi] || {})); // snapshot before edit
+  g.projects[pi] = JSON.parse(JSON.stringify(payload));
+  projectIndex = pi;
+
+  // 1) Name change
+  if ((prev.name || "") !== (payload.name || "")) {
+    addLogEntry(g.name, "project-name-change", {
+      groupIndex: gi,
+      projectIndex: pi,
+      from: prev.name || "",
+      to: payload.name || ""
+    });
+  }
+
+  // 1.5) PO Number change
+const prevPO = prev.poNumber || "";
+const newPO = payload.poNumber || "";
+
+if (prevPO !== newPO) {
+  if (prevPO === "" && newPO !== "") {
+    // Adding PO for the first time
+    addLogEntry(g.name, "project-po-added", {
+      groupIndex: gi,
+      projectIndex: pi,
+      poNumber: newPO
+    });
+  } else if (prevPO !== "" && newPO !== prevPO) {
+    // Changing existing PO
+    addLogEntry(g.name, "project-po-change", {
+      groupIndex: gi,
+      projectIndex: pi,
+      from: prevPO,
+      to: newPO
+    });
+  }
+}
+  // 2) Start date change
+  if ((prev.startDate || "") !== (payload.startDate || "")) {
+    addLogEntry(g.name, "project-start-change", {
+      groupIndex: gi,
+      projectIndex: pi,
+      projectName: p.name || "",
+      from: prev.startDate || "",
+      to: payload.startDate || ""
+    });
+  }
+
+  // 3) End date change
+  if ((prev.completionDate || "") !== (payload.completionDate || "")) {
+    addLogEntry(g.name, "project-end-change", {
+      groupIndex: gi,
+      projectIndex: pi,
+      projectName: p.name || "",
+      from: prev.completionDate || "",
+      to: payload.completionDate || ""
+    });
+  }
+
+  // 4) Milestones: added / removed / changed (by label)
+  var prevMs = Array.isArray(prev.milestones) ? prev.milestones : [];
+  var nextMs = Array.isArray(payload.milestones) ? payload.milestones : [];
+
+  function indexByLabel(list) {
+    var m = {};
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i] || {};
+      var k = String(it.label || "").toLowerCase();
+      if (k) m[k] = it;
+    }
+    return m;
+  }
+
+  var prevMap = indexByLabel(prevMs);
+  var nextMap = indexByLabel(nextMs);
+
+  // additions
+  for (var k in nextMap) {
+    if (!prevMap.hasOwnProperty(k)) {
+      var add = nextMap[k];
+      addLogEntry(g.name, "milestone-add", {
+        groupIndex: gi,
+        projectIndex: pi,
+        label: add.label || "",
+        date:  add.date || add.startDate || "",
+        status: add.status || ""
+      });
+    }
+  }
+
+  // removals
+  for (var k2 in prevMap) {
+    if (!nextMap.hasOwnProperty(k2)) {
+      var rem = prevMap[k2];
+      addLogEntry(g.name, "milestone-remove", {
+        groupIndex: gi,
+        projectIndex: pi,
+        label: rem.label || "",
+        date:  rem.date || rem.startDate || "",
+        status: rem.status || ""
+      });
+    }
+  }
+
+  // changes (same label; date or status differs)
+  for (var k3 in nextMap) {
+    if (prevMap.hasOwnProperty(k3)) {
+      var oldM = prevMap[k3];
+      var newM = nextMap[k3];
+      var oldDate = oldM.date || oldM.startDate || "";
+      var newDate = newM.date || newM.startDate || "";
+      var oldStatus = oldM.status || "";
+      var newStatus = newM.status || "";
+
+      if (oldDate !== newDate || oldStatus !== newStatus) {
+        addLogEntry(g.name, "milestone-change", {
+          groupIndex: gi,
+          projectIndex: pi,
+          label: newM.label || "",
+          from: { date: oldDate, status: oldStatus },
+          to:   { date: newDate, status: newStatus }
+        });
+      }
+    }
+  }
+
+  // If you rely on the Daily Log immediately, compile now (optional)
+  compileDailyLogs();
+}
+
+
+  saveData();
+  render();
+  renderGroupProjectList(gi);
+  closeModal("projectModal");
+};
+     
+      }
+
+        if (btnClose) btnClose.onclick = () => closeModal('projectModal');
+    if (btnAddMs) btnAddMs.onclick = () => openMilestoneModal(gi, (pi ?? g.projects.length));
+
+    openModal('projectModal');
+      // Apply permissions after modal opens
+  setTimeout(() => applyPermissions(), 10);
+  }
+  /* ===================== MODAL MANAGER (FOCUS TRAP + ESC + BACKDROP) ===================== */
+  
+  const modalStack = [];
+  let bodyScrollPrev = '';
+
+  function getFocusable(root) {
+    return Array.from(
+      root.querySelectorAll(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(el => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+  }
+
+  function trapFocus(modal) {
+    const focusables = getFocusable(modal);
+    if (!focusables.length) return () => {};
+    const first = focusables[0];
+    const last  = focusables[focusables.length - 1];
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeModal(modal.id);
+        return;
+      }
+      if (e.key === 'Tab') {
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault(); first.focus();
+        }
+      }
+    }
+
+    modal.addEventListener('keydown', onKeyDown);
+    return () => modal.removeEventListener('keydown', onKeyDown);
+  }
+
+  function openModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+
+    // display + accessibility
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+
+    // backdrop click to close (kept minimal; does not change layout)
+    if (!modal.dataset.backdropBound) {
+      modal.addEventListener('mousedown', (e) => {
+        if (e.target === modal) closeModal(id);
+      });
+      modal.dataset.backdropBound = '1';
+    }
+
+    // lock body scroll on first modal
+    if (modalStack.length === 0) {
+      bodyScrollPrev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+
+    // focus trap + initial focus
+    const release = trapFocus(modal);
+    const toFocus = getFocusable(modal)[0] || modal;
+    setTimeout(() => toFocus.focus({ preventScroll: true }), 0);
+
+    modalStack.push({ id, release });
+  }
+
+  function closeModal(id) {
+    // if no id provided, close top; else close that id
+    let entryIndex = -1;
+    if (id) entryIndex = modalStack.findIndex(m => m.id === id);
+    if (entryIndex === -1) entryIndex = modalStack.length - 1;
+    if (entryIndex < 0) return;
+
+    const { id: targetId, release } = modalStack.splice(entryIndex, 1)[0];
+    const modal = document.getElementById(targetId);
+    if (!modal) return;
+
+    // release focus trap
+    try { release && release(); } catch {}
+
+    // hide
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+
+    // restore scroll when stack empty
+    if (modalStack.length === 0) {
+      document.body.style.overflow = bodyScrollPrev || '';
+    }
+
+    // refocus previous modal (if any)
+    if (modalStack.length) {
+      const top = modalStack[modalStack.length - 1];
+      const topEl = document.getElementById(top.id);
+      if (topEl) {
+        const toFocus = getFocusable(topEl)[0] || topEl;
+        toFocus.focus({ preventScroll: true });
+      }
+    }
+  }
+  /* ===================== VIEW-STATE (PER-PROJECT OFFSETS) ===================== */
+  function loadViewState() {
+    try {
+      const raw = localStorage.getItem(VIEW_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (e) {
+      console.warn('ViewState parse failed:', e);
+      return {};
+    }
+  }
+  function saveViewState() {
+    try { localStorage.setItem(VIEW_KEY, JSON.stringify(projectViewState)); }
+    catch (e) { console.warn('ViewState save failed:', e); }
+  }
+
+  /* ===================== TOOLBAR WIRING ===================== */
+function wireToolbar() {
+  const btnNewGroup = document.getElementById('btnNewGroup');
+  const btnSave     = document.getElementById('btnSave');
+  const btnLoad     = document.getElementById('btnLoad');
+  const fileInput   = document.getElementById('jsonFileInput');
+
+  if (btnNewGroup) {
+    btnNewGroup.onclick = () => {
+      // ✅ use the logging-enabled newGroup() function
+      newGroup();
+    };
+  }
+
+  // You can still wire up save/load/fileInput below if needed
+}
+
+
+/* ===================== BOOT / INIT ===================== */
+(function init() {
+  wireToolbar();
+
+// NEW bootstrap using backend
+(async () => {
+  const ok = await loadFromServer();
+  if (!ok) {
+    console.warn("Starting with empty dataset");
+  }
+  render();
+  });
+
+// Only clear session on manual logout - remove automatic clearing on page events
+const clearSessionOnExit = () => {
+  // Only clear if user explicitly logged out
+  const explicitLogout = sessionStorage.getItem("explicitLogout");
+  if (explicitLogout === "true") {
+    try {
+      localStorage.removeItem("bm-currentUser");
+      localStorage.removeItem("loggedInUser");
+      localStorage.removeItem("userRole");
+      sessionStorage.removeItem("explicitLogout");
+    } catch (_) {}
+  }
+};
+
+    // --- REPORT MODE (single-group compiled view) ---
+  const m = window.location.hash.match(/^#?report=(\d+)$/);
+  if (m) {
+    const giFromHash = parseInt(m[1], 10);
+    const g = (Array.isArray(groups) && groups[giFromHash]) ? groups[giFromHash] : null;
+
+    const reportShell = document.getElementById("reportPage");
+    const reportContent = document.getElementById("reportContent");
+    const tracker = document.getElementById("trackerWrapper");
+
+    if (g && reportShell && reportContent) {
+      showReportPage(g); // fills #reportContent and shows #reportPage
+      if (tracker) tracker.style.display = "none";
+    } else {
+      if (reportContent) {
+        reportContent.innerHTML = "<p><em>Group not found.</em></p>";
+      }
+      if (reportShell) reportShell.style.display = "block";
+      if (tracker) tracker.style.display = "none";
+    }
+    return;  // skip timeline render in report mode
+  }
+
+    render();
+  })();
+
+
+  document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
+
+// Handle window resize to fix group card scaling
+window.addEventListener('resize', () => {
+  // Debounce the resize to avoid excessive re-renders
+  clearTimeout(window.resizeTimeout);
+  window.resizeTimeout = setTimeout(() => {
+    render();
+  }, 100);
+});
+
+  /* ===================== LOGIN / USER PROFILE ===================== */
+// Restore session if it exists
+let loggedInUser = localStorage.getItem("loggedInUser");
+let userRole = localStorage.getItem("userRole");
+
+// Users will be loaded from server only
+let users = [];
+
+async function loadUsers() {
+  try {
+    const res = await fetch("/api/users");
+    if (!res.ok) throw new Error("Load users failed");
+    const serverUsers = await res.json();
+    
+    if (Array.isArray(serverUsers) && serverUsers.length > 0) {
+      users = serverUsers;
+      localStorage.setItem("users", JSON.stringify(users)); // update local backup
+      return true;
+    }
+  } catch (e) {
+    console.warn("Server load users failed:", e);
+  }
+  return false;
+}
+
+async function saveUsers() {
+  try {
+    // Remove localStorage backup
+    // localStorage.setItem("users", JSON.stringify(users)); 
+    // Save to server only
+    const res = await fetch("/api/users", {
+      method: "POST", 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(users)
+    });
+    
+    if (!res.ok) throw new Error("Save users failed");
+    console.log("✅ Users saved to server");
+  } catch (e) {
+    console.warn("Save users failed:", e);
+  }
+}
+
+function handleLogin() {
+  const user = document.getElementById('loginUsername')?.value.trim();
+  const pass = document.getElementById('loginPassword')?.value;
+
+  if (!user || !pass) {
+    alert("Please enter both username and password.");
+    return;
+  }
+
+  // Look up in the users array
+  const found = users.find(u => u.username === user && u.password === pass);
+  if (!found) {
+    alert("Invalid credentials.");
+
+    // ✅ Log invalid login attempt
+    addLogEntry("", "invalid-login", {
+      attemptedUser: user || "(blank)"
+    });
+
+    return;
+  }
+
+  // ✅ Only after a valid login: set session
+  loggedInUser = found.username;
+  userRole     = found.role;
+  localStorage.setItem("loggedInUser", loggedInUser);
+  localStorage.setItem("userRole", userRole);
+
+  currentUser = { username: loggedInUser, role: userRole };
+  localStorage.setItem("bm-currentUser", JSON.stringify(currentUser));
+
+  // ✅ Force creation of today’s daily log bucket right on login
+  compileDailyLogs();
+
+  // ✅ Log successful login
+  addLogEntry("", "login", { username: loggedInUser, role: userRole });
+
+
+  // Assign session values
+  loggedInUser = found.username;
+  userRole = found.role;
+
+  // Save session to localStorage
+  localStorage.setItem("loggedInUser", loggedInUser);
+  localStorage.setItem("userRole", userRole);
+  currentUser = { username: loggedInUser, role: userRole };
+  localStorage.setItem("bm-currentUser", JSON.stringify(currentUser));
+
+
+  // Update UI
+  const btnLogin = document.getElementById('btnLogin');
+  if (btnLogin) {
+    btnLogin.textContent = "Log out";
+    btnLogin.onclick = handleLogout;   // ✅ switch handler immediately
+  }
+
+  const btnEditUser = document.getElementById('btnEditUser');
+  if (btnEditUser) {
+    btnEditUser.style.display = (userRole === "admin") ? "inline-block" : "none";
+  }
+
+applyPermissions();
+  render();                             // ✅ refresh UI instantly
+
+  document.getElementById("screenOverlay").style.display = "none";
+  closeModal('loginModal');
+
+  // ✅ Start keepalive video after login (user interaction)
+  if (window.keepAwakeVideo) {
+    window.keepAwakeVideo.play()
+      .then(() => console.log('✅ Keepalive video started after login'))
+      .catch(err => console.log('Video start failed:', err));
+  }
+}
+
+  function handleLogout() {
+    if (currentUser) {
+    addLogEntry("", "logout", {
+      username: currentUser.username,
+      role: currentUser.role
+    });
+  }
+    loggedInUser = null;
+    userRole = null;
+    currentUser = null;
+
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("bm-currentUser");
+
+
+  const btnLogin = document.getElementById('btnLogin');
+  if (btnLogin) btnLogin.textContent = "Login";
+
+  const btnEditUser = document.getElementById('btnEditUser');
+  if (btnEditUser) btnEditUser.style.display = "none";
+
+  // Clear login modal fields so they’re always blank
+  const userInp = document.getElementById("loginUsername");
+  const passInp = document.getElementById("loginPassword");
+  if (userInp) userInp.value = "";
+  if (passInp) passInp.value = "";
+
+  // NEW: re-apply non-admin/user permissions immediately
+  applyPermissions();
+
+  const overlay = document.getElementById("screenOverlay");
+  if (overlay) overlay.style.display = "block";
+  openModal("loginModal");
+}
+
+function applyPermissions() {
+  const restrictedButtons = ["btnNewGroup", "btnSave", "btnLoad", "btnEditUser"];
+  const isAdmin = (userRole === "admin");
+  const isTeamLead = (userRole === "teamlead");
+  const isLoggedOut = (!loggedInUser);
+
+  // Hide/disable top bar buttons unless admin
+  restrictedButtons.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (isAdmin) {
+      el.style.display = "inline-block";
+      el.disabled = false;
+    } else {
+      el.style.display = "none";
+      el.disabled = true;
+    }
+  });
+
+  // Handle Group Modal buttons for Team Lead
+  const groupModal = document.getElementById("groupModal");
+  if (groupModal && isTeamLead) {
+    const groupButtons = groupModal.querySelectorAll("button");
+    groupButtons.forEach(btn => {
+      // Only allow Edit and Close buttons in Group Modal
+      if (btn.id === "btnGroupClose") {
+        btn.disabled = false;
+      } else if (btn.textContent === "Edit") {
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+    });
+  }
+
+  // Handle Project Modal for Team Lead
+  const projectModal = document.getElementById("projectModal");
+  if (projectModal && isTeamLead) {
+    const projectButtons = projectModal.querySelectorAll("button");
+    projectButtons.forEach(btn => {
+      // Allow Save, Close, and milestone status toggle buttons
+      if (btn.id === "btnProjSave" || btn.id === "btnProjClose") {
+        btn.disabled = false;
+      } else if (btn.parentElement && 
+                 btn.parentElement.parentElement && 
+                 btn.parentElement.parentElement.id === 'milestoneList' &&
+                 (btn.textContent.includes('Days Remaining') || 
+                  btn.textContent.includes('Complete') || 
+                  btn.textContent.includes('Due Today') ||
+                  btn.textContent.includes('Overdue'))) {
+        // This is a milestone status toggle button
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
+    });
+  }
+
+  // Disable all modal controls based on role
+  const modals = ["groupModal", "projectModal", "milestoneModal", "teamModal", "editUserModal"];
+  modals.forEach(id => {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+
+    // Skip if already handled above for Team Lead
+    if (isTeamLead && (id === "groupModal" || id === "projectModal")) {
+      // Already handled above
+    } else {
+      const buttons = modal.querySelectorAll("button");
+      buttons.forEach(btn => {
+        if (btn.id !== "btnLogin" && btn.id !== "btnLoginSubmit" && btn.id !== "btnLoginCancel") {
+          btn.disabled = !isAdmin;
+        }
+      });
+    }
+
+    const inputs = modal.querySelectorAll("input, select, textarea");
+    inputs.forEach(inp => {
+      // Team Lead can only edit project comments
+      if (isTeamLead) {
+        const isCommentField = inp.id === 'projectComments';
+        inp.disabled = !isCommentField;
+      } else {
+        inp.disabled = !isAdmin;
+      }
+    });
+  });
+
+  // Disable clickable group labels in the timeline
+  const labels = document.querySelectorAll(".clickable");
+  labels.forEach(lbl => {
+    if (!isAdmin && !isTeamLead) {
+      lbl.classList.remove("clickable");
+      lbl.style.pointerEvents = "none";
+      lbl.style.opacity = "0.6";
+    } else {
+      lbl.classList.add("clickable");
+      lbl.style.pointerEvents = "auto";
+      lbl.style.opacity = "1";
+    }
+  });
+}
+function wireLoginSystem() {
+  const btnLogin = document.getElementById('btnLogin');
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+  const btnCancel = document.getElementById('btnLoginCancel');
+
+  if (btnLogin) {
+    btnLogin.onclick = () => {
+      if (loggedInUser) {
+        handleLogout();
+      } else {
+
+      // explicitly open login modal
+        openModal('loginModal');
+      }
+    };
+  }
+
+  if (btnSubmit) {
+    btnSubmit.onclick = () => handleLogin();
+  }
+
+  if (btnCancel) {
+    btnCancel.onclick = () => closeModal('loginModal');
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (loggedInUser && userRole) {
+    const btnLogin = document.getElementById('btnLogin');
+    if (btnLogin) btnLogin.textContent = "Log out";
+
+    const btnEditUser = document.getElementById('btnEditUser');
+    if (btnEditUser) {
+      btnEditUser.style.display = (userRole === "admin") ? "inline-block" : "none";
+    }
+
+    document.getElementById("screenOverlay").style.display = "none";
+  } else {
+    document.getElementById("screenOverlay").style.display = "block";
+    openModal("loginModal");
+  }
+
+  // ✅ Always enforce permissions regardless of login state
+  applyPermissions();
+
+  wireLoginSystem();
+  renderUserList();
+});
+
+
+/* ===================== EDIT USER MODAL ===================== */
+function renderUserList() {
+  const userList = document.getElementById('userList');
+  if (!userList) return;
+  userList.innerHTML = "";
+
+  users.forEach((u, idx) => {
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.justifyContent = "space-between";
+    row.style.marginBottom = "0.5rem";
+
+    const info = document.createElement("span");
+    info.textContent = `${u.username} (${u.role})`;
+    row.appendChild(info);
+
+    const actions = document.createElement("div");
+
+    // Edit button
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.style.marginRight = "5px";
+    editBtn.onclick = () => {
+      document.getElementById('newUsername').value = u.username;
+      document.getElementById('newPassword').value = u.password;
+      document.getElementById('newRole').value = u.role;
+
+      const btnAdd = document.getElementById('btnAddUser');
+      btnAdd.textContent = "Save Changes";
+      btnAdd.onclick = () => {
+        const name = document.getElementById('newUsername').value.trim();
+        const pass = document.getElementById('newPassword').value.trim();
+        const role = document.getElementById('newRole').value;
+
+        if (!name || !pass) {
+          alert("Enter both username and password.");
+          return;
+        }
+        users[idx] = { username: name, password: pass, role };
+        saveUsers();
+        btnAdd.textContent = "Add User";
+        btnAdd.onclick = () => addUser();
+
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        renderUserList();
+      };
+    };
+    actions.appendChild(editBtn);
+
+    // Remove button (not for default admin)
+if (u.username !== "admin") {
+  const removeBtn = document.createElement("button");
+  removeBtn.textContent = "Remove";
+  removeBtn.onclick = () => {
+    if (!confirm(`Are you sure you want to remove user "${u.username}"? This action cannot be undone.`)) {
+      return;
+    }
+    users.splice(idx, 1);
+    saveUsers();
+    renderUserList();
+  };
+  actions.appendChild(removeBtn);
+}
+
+    row.appendChild(actions);
+    userList.appendChild(row);
+  });
+}
+
+function openEditUserModal() {
+  renderUserList();
+  openModal('editUserModal');
+}
+
+function addUser() {
+  const name = document.getElementById('newUsername')?.value.trim();
+  const pass = document.getElementById('newPassword')?.value.trim();
+  const role = document.getElementById('newRole')?.value;
+
+  if (!name || !pass) {
+    alert("Enter both username and password.");
+    return;
+  }
+  if (users.find(u => u.username === name)) {
+    alert("User already exists.");
+    return;
+  }
+  users.push({ username: name, password: pass, role });
+  saveUsers();
+  document.getElementById('newUsername').value = '';
+  document.getElementById('newPassword').value = '';
+  renderUserList();
+}
+
+(function wireEditUserButton() {
+  const btnEditUser = document.getElementById('btnEditUser');
+  const btnClose = document.getElementById('btnCloseEditUser');
+  const btnAdd = document.getElementById('btnAddUser');
+
+  if (btnEditUser) btnEditUser.onclick = () => openEditUserModal();
+  if (btnClose) btnClose.onclick = () => closeModal('editUserModal');
+  if (btnAdd) btnAdd.onclick = () => addUser();
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (loggedInUser && userRole) {
+    const btnLogin = document.getElementById('btnLogin');
+    if (btnLogin) btnLogin.textContent = "Log out";
+
+    const btnEditUser = document.getElementById('btnEditUser');
+    if (btnEditUser) {
+      btnEditUser.style.display = (userRole === "admin") ? "inline-block" : "none";
+    }
+
+      document.getElementById("screenOverlay").style.display = "none";
+      applyPermissions();
+  }
+  renderUserList();
+});
+
+})();
+
+function showReportPage(group) {
+  let html = `
+    <h2>${group.name}</h2>
+    <ul>
+      ${(group.teamMembers || [])
+        .map(m => `<li><strong>${m.role}</strong>: ${m.name}</li>`)
+        .join("")}
+    </ul>
+    <div>
+      ${(group.projects || [])
+        .map(p => {
+          const milestones = (p.milestones || [])
+            .map(m => {
+              const today = new Date();
+              let dateText = m.date || m.startDate || "";
+              let status = m.status || "";
+              let diffText = "";
+
+              if (dateText) {
+                const dueDate = parseLocalDate(dateText);
+
+                // Normalize dates to calendar day only
+                const toYMD = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                const DAY_MS = 24 * 60 * 60 * 1000;
+                const diffDays = (a, b) => Math.round((toYMD(a) - toYMD(b)) / DAY_MS);
+
+                let delta = 0;
+
+                if (m.status === "completed") {
+                  // 🟢 Green: 0 if on/after due, negative if early
+                  const completed = m.completedOn ? parseLocalDate(m.completedOn) : today;
+                  const d = diffDays(completed, dueDate);
+                  delta = d < 0 ? d : 0;
+                  diffText = (delta !== 0) ? String(delta) : "0";
+                } else if (m.status === "completedLate") {
+                  // Striped: positive if completed after due date
+                  const completed = m.completedOn ? parseLocalDate(m.completedOn) : today;
+                  const d = diffDays(completed, dueDate);
+                  delta = d > 0 ? d : 0;
+                  diffText = (delta > 0 ? '+' : '') + String(delta);
+                } else {
+                  // Incomplete → compare today vs due
+                  const d = diffDays(today, dueDate);
+                  if (d === 0) {
+                    diffText = "0"; // due today
+                  } else {
+                    diffText = (d > 0 ? '+' : '') + String(d);
+                  }
+                }
+              }
+
+                const statusLabels = {
+                incomplete: "In Progress",
+                overdue: "In Progress, Past Due",
+                completed: "Complete, On-Time/Early",
+                completedLate: "Complete, Past due"
+              };
+
+              return `
+                <tr>
+                  <td>${m.label || "Milestone"}</td>
+                  <td>${dateText || "—"}</td>
+                  <td>${statusLabels[m.status] || m.status || "—"}</td>
+                  <td>${diffText}</td>
+                </tr>`;
+            })
+            .join("");
+
+          return `
+            <div style="margin-bottom:1.5rem;">
+              <h4>${p.name || "Untitled Project"}</h4>
+              <p><strong>Start Date:</strong> ${p.startDate || "—"}<br>
+   <strong>End Date:</strong> ${p.completionDate || "—"}</p>
+              ${
+                milestones
+                  ? `<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse; margin-top:0.5rem;">
+                       <thead>
+                          <tr>
+                            <th style="width:20%;">Milestone</th>
+                            <th style="width:15%;">Due Date</th>
+                            <th style="width:15%;">Status</th>
+                            <th style="width:15%;">Δ</th>   <!-- or "Days" if you prefer -->
+                          </tr>
+                        </thead>
+                       <tbody>${milestones}</tbody>
+                     </table>`
+                  : "<p><em>No milestones</em></p>"
+              }
+            </div>`;
+        })
+        .join("")}
+    </div>
+  `;
+
+  return html;
+}
+
+const gi = contextTarget.groupIndex;
+const g = groups[gi];
+  (g.projects || []).forEach(p => {
+    html += `
+      <div style="margin-bottom: 1.5rem;">
+        <strong>${p.name || "Untitled Project"}</strong><br>
+        ${p.startDate || "?"} → ${p.completionDate || "?"}
+        <table border="1" cellspacing="0" cellpadding="4" style="margin-top:5px; border-collapse:collapse; width:100%;">
+          <tr><th>Milestone</th><th>Due Date</th><th>Status</th><th>Δ</th></tr>
+          ${(p.milestones || []).map(ms => {
+            let deltaText = "—";
+
+            if (ms.date) {
+              const now = new Date();
+              const due = endOfDay(new Date(ms.date));
+              const msDiff = due - now;
+
+              if (ms.status === "incomplete") {
+                if (now <= due) {
+                  const daysRemaining = Math.floor(msDiff / (1000*60*60*24));
+                  if (daysRemaining >= 1) {
+                    deltaText = `${daysRemaining} days remaining`;
+                  } else {
+                    const hoursRemaining = Math.floor(msDiff / (1000*60*60));
+                    deltaText = `${hoursRemaining} hours remaining`;
+                  }
+                }
+              } else if (ms.status === "overdue") {
+                if (now > due) {
+                  const overdueDays = Math.floor((now - due) / (1000*60*60*24));
+                  deltaText = `${overdueDays} days overdue`;
+                }
+              } else if (ms.status === "completed") {
+                deltaText = "0 days";
+              } else if (ms.status === "completedLate") {
+                if (now > due) {
+                  const lateDays = Math.floor((now - due) / (1000*60*60*24));
+                  deltaText = `${lateDays} days late`;
+                }
+              }
+            }
+
+            return `
+              <tr>
+                <td>${ms.label || "Milestone"}</td>
+                <td>${ms.date || ""}</td>
+                <td>${ms.status || "incomplete"}</td>
+                <td>${deltaText}</td>
+              </tr>
+            `;
+          }).join("")}
+        </table>
+      </div>
+    `;
+  });
+
+  const reportContent = document.getElementById("reportContent");
+  if (reportContent) reportContent.innerHTML = html;
+
+  document.getElementById("trackerWrapper").style.display = "none";
+  document.getElementById("reportPage").style.display = "block";
+
+</script>
+
+<div id="reportPage" style="display:none; padding:20px;">
+ <div id="reportContent"></div>
+  <br>
+  <button onclick="goBack()">⬅ Back</button>
+</div>
+</body>
+</html>
