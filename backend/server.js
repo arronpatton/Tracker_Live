@@ -2,6 +2,8 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
+const multer = require("multer");
+const { execSync } = require("child_process");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -367,6 +369,130 @@ app.post("/api/tv-urls", (req, res) => {
   }
   saveTVUrls(urls);
   res.json({ status: "ok", count: urls.length });
+});
+
+// ====================== FILE UPLOAD API ====================== //
+
+const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+// Serve uploaded files statically
+app.use("/uploads", express.static(UPLOADS_DIR));
+
+// Configure multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, file, cb) => {
+    // Use timestamp + original name to avoid collisions
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, Date.now() + '_' + safeName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.pdf', '.xlsx', '.xls', '.docx', '.doc', '.png', '.jpg', '.jpeg'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed. Supported: PDF, Excel, Word, PNG, JPG'));
+    }
+  }
+});
+
+// Convert Office files to PDF using LibreOffice
+function convertToPdf(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (['.pdf', '.png', '.jpg', '.jpeg'].includes(ext)) {
+    return filePath; // Already displayable, no conversion needed
+  }
+
+  try {
+    // Use LibreOffice to convert to PDF
+    const outDir = path.dirname(filePath);
+    execSync(`libreoffice --headless --convert-to pdf --outdir "${outDir}" "${filePath}"`, {
+      timeout: 60000,
+      stdio: 'pipe'
+    });
+
+    // The output PDF has the same name but .pdf extension
+    const baseName = path.basename(filePath, ext);
+    const pdfPath = path.join(outDir, baseName + '.pdf');
+
+    if (fs.existsSync(pdfPath)) {
+      // Remove the original Office file
+      fs.unlinkSync(filePath);
+      return pdfPath;
+    } else {
+      console.error('PDF conversion failed: output file not found');
+      return filePath; // Return original if conversion fails
+    }
+  } catch (err) {
+    console.error('PDF conversion error:', err.message);
+    return filePath; // Return original if conversion fails
+  }
+}
+
+// Upload a file
+app.post("/api/upload", upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  const displayName = req.body.name || req.file.originalname;
+  let filePath = req.file.path;
+  const origExt = path.extname(req.file.originalname).toLowerCase();
+
+  // Convert Office files to PDF
+  if (['.xlsx', '.xls', '.docx', '.doc'].includes(origExt)) {
+    filePath = convertToPdf(filePath);
+  }
+
+  const fileName = path.basename(filePath);
+  const fileUrl = '/uploads/' + fileName;
+
+  // Add to TV URLs list
+  const urls = loadTVUrls();
+  urls.push({
+    name: displayName,
+    url: fileUrl,
+    type: 'file',
+    originalName: req.file.originalname,
+    uploadedAt: new Date().toISOString()
+  });
+  saveTVUrls(urls);
+
+  res.json({
+    status: "ok",
+    name: displayName,
+    url: fileUrl,
+    fileName: fileName
+  });
+});
+
+// Delete an uploaded file
+app.delete("/api/upload/:fileName", (req, res) => {
+  const { fileName } = req.params;
+  const filePath = path.join(UPLOADS_DIR, fileName);
+
+  // Security: don't allow path traversal
+  if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
+    return res.status(400).json({ error: "Invalid filename" });
+  }
+
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.json({ status: "ok", deleted: fileName });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete file" });
+  }
 });
 
 // ======================================================== //

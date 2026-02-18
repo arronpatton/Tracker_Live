@@ -32,8 +32,10 @@
   </style>
 </head>
 <body>
-  <div id="loading">Loading external page...</div>
-  <iframe id="extFrame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
+  <div id="loading">Loading...</div>
+  <iframe id="extFrame" style="display:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"></iframe>
+  <embed id="pdfFrame" style="display:none; width:100vw; height:100vh;" type="application/pdf" />
+  <img id="imgFrame" style="display:none; max-width:100vw; max-height:100vh; margin:auto; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);" />
   <div id="countdown-bar"></div>
   <div id="manualControls">
     <button id="btnBounceSwitch">&#8592; Back to Tracker</button>
@@ -55,14 +57,28 @@
     var mode = params.mode || 'auto';
 
     if (extUrl) {
-      var frame = document.getElementById('extFrame');
-      frame.src = extUrl;
-      frame.onload = function() {
+      var lower = extUrl.toLowerCase();
+      var isPdf = lower.endsWith('.pdf') || lower.includes('.pdf?');
+      var isImage = lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.gif');
+
+      if (isPdf) {
+        var pdfFrame = document.getElementById('pdfFrame');
+        pdfFrame.src = extUrl;
+        pdfFrame.style.display = 'block';
         document.getElementById('loading').style.display = 'none';
-      };
-      setTimeout(function() {
-        document.getElementById('loading').style.display = 'none';
-      }, 3000);
+      } else if (isImage) {
+        var imgFrame = document.getElementById('imgFrame');
+        imgFrame.src = extUrl;
+        imgFrame.onload = function() { document.getElementById('loading').style.display = 'none'; };
+        imgFrame.style.display = 'block';
+        setTimeout(function() { document.getElementById('loading').style.display = 'none'; }, 3000);
+      } else {
+        var frame = document.getElementById('extFrame');
+        frame.src = extUrl;
+        frame.style.display = 'block';
+        frame.onload = function() { document.getElementById('loading').style.display = 'none'; };
+        setTimeout(function() { document.getElementById('loading').style.display = 'none'; }, 3000);
+      }
     }
 
     if (mode === 'manual') {

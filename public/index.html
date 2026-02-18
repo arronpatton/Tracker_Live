@@ -616,18 +616,36 @@ body {
   </div>
 </div>
 
-<!-- Add URL Mini-Modal -->
+<!-- Add URL / Upload File Modal -->
 <div id="tvAddUrlModal" class="modal" role="dialog" aria-modal="true">
   <div class="modalContent" style="width: 28rem;">
-    <h3>Add Display URL</h3>
-    <p style="font-size: 0.8rem; color: #555; margin: 0.5rem 0 0.75rem;">
-      Paste a URL or SharePoint embed code below.
-    </p>
-    <label for="tvNewUrlInput" style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Display Name</label>
-    <input type="text" id="tvNewUrlName" placeholder="e.g. Production Schedule" style="width:90%;" />
-    <label for="tvNewUrlInput" style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; margin-top:0.5rem; color:var(--text);">URL or Embed Code</label>
-    <input type="text" id="tvNewUrlInput" placeholder="https://... or paste iframe embed code" style="width:90%;" />
-    <p id="tvNewUrlHint" style="font-size:0.7rem; color:#888; padding-left:5%; margin:0.25rem 0 0; text-align:left;"></p>
+    <h3>Add Display Item</h3>
+
+    <!-- Tab toggle -->
+    <div style="display:flex; gap:0; margin:0.75rem 5% 0.75rem; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden;">
+      <button id="tabLink" onclick="tvShowTab('link')" style="flex:1; padding:0.4rem; font-size:var(--fs-12); font-weight:bold; border:none; cursor:pointer; background:var(--accent); color:white;">Link / URL</button>
+      <button id="tabFile" onclick="tvShowTab('file')" style="flex:1; padding:0.4rem; font-size:var(--fs-12); font-weight:bold; border:none; cursor:pointer; background:#f0f0f0; color:#333;">Upload File</button>
+    </div>
+
+    <!-- Link tab -->
+    <div id="tvTabLink">
+      <label style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Display Name</label>
+      <input type="text" id="tvNewUrlName" placeholder="e.g. Production Schedule" style="width:90%;" />
+      <label style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; margin-top:0.5rem; color:var(--text);">URL or Embed Code</label>
+      <input type="text" id="tvNewUrlInput" placeholder="https://... or paste iframe embed code" style="width:90%;" />
+      <p id="tvNewUrlHint" style="font-size:0.7rem; color:#888; padding-left:5%; margin:0.25rem 0 0; text-align:left;"></p>
+    </div>
+
+    <!-- File tab -->
+    <div id="tvTabFile" style="display:none;">
+      <label style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; color:var(--text);">Display Name</label>
+      <input type="text" id="tvFileDisplayName" placeholder="e.g. Org Chart" style="width:90%;" />
+      <label style="display:block; text-align:left; padding-left:5%; font-size:var(--fs-12); margin-bottom:0.25rem; margin-top:0.5rem; color:var(--text);">Select File (PDF, Excel, Word, or Image)</label>
+      <input type="file" id="tvFileInput" accept=".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg" style="width:90%; font-size:var(--fs-12); margin-top:0.25rem;" />
+      <p style="font-size:0.7rem; color:#888; padding-left:5%; margin:0.25rem 0 0; text-align:left;">Excel and Word files will be converted to PDF for display.</p>
+      <div id="tvUploadProgress" style="display:none; padding:0.5rem 5%; font-size:0.8rem; color:var(--accent);">Uploading...</div>
+    </div>
+
     <div style="margin-top:1rem; display:flex; justify-content:center; gap:0.5rem;">
       <button id="btnTVSaveUrl" style="background:var(--success);">Save</button>
       <button id="btnTVCancelUrl">Cancel</button>
@@ -640,6 +658,7 @@ body {
 (function() {
   var tvUrls = [];
   var dropdownOpen = false;
+  var currentTab = 'link';
 
   async function loadUrls() {
     try {
@@ -668,6 +687,17 @@ body {
     return input;
   }
 
+  // Tab switching
+  window.tvShowTab = function(tab) {
+    currentTab = tab;
+    document.getElementById('tvTabLink').style.display = tab === 'link' ? 'block' : 'none';
+    document.getElementById('tvTabFile').style.display = tab === 'file' ? 'block' : 'none';
+    document.getElementById('tabLink').style.background = tab === 'link' ? 'var(--accent)' : '#f0f0f0';
+    document.getElementById('tabLink').style.color = tab === 'link' ? 'white' : '#333';
+    document.getElementById('tabFile').style.background = tab === 'file' ? 'var(--accent)' : '#f0f0f0';
+    document.getElementById('tabFile').style.color = tab === 'file' ? 'white' : '#333';
+  };
+
   function toggleDropdown() {
     var menu = document.getElementById('tvDropdownMenu');
     if (!menu) return;
@@ -688,19 +718,18 @@ body {
 
     var html = '';
 
-    // Tracker Home option
     html += '<div style="display:flex; align-items:center; padding:0.5rem 0.75rem; cursor:pointer; border-bottom:1px solid #eee;" ' +
       'onmouseover="this.style.background=\'#f0f0f0\'" onmouseout="this.style.background=\'#fff\'" ' +
       'onclick="tvSelectHome()">' +
       '<span style="flex:1; font-size:0.85rem; color:#000;">&#127968; Tracker Home</span>' +
     '</div>';
 
-    // Saved URLs
     tvUrls.forEach(function(item, i) {
+      var icon = item.type === 'file' ? '&#128196; ' : '&#128279; ';
       html += '<div style="display:flex; align-items:center; padding:0.4rem 0.75rem; cursor:pointer; border-bottom:1px solid #eee;" ' +
         'onmouseover="this.style.background=\'#f0f0f0\'" onmouseout="this.style.background=\'#fff\'">' +
         '<span style="flex:1; font-size:0.85rem; color:#000; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" ' +
-          'onclick="tvSelectUrl(' + i + ')" title="' + item.url + '">' + (item.name || 'Page ' + (i + 1)) + '</span>' +
+          'onclick="tvSelectUrl(' + i + ')" title="' + (item.url || '') + '">' + icon + (item.name || 'Page ' + (i + 1)) + '</span>' +
         '<span onclick="event.stopPropagation(); tvDeleteUrl(' + i + ')" ' +
           'style="color:#dc3545; font-weight:bold; font-size:1rem; cursor:pointer; padding:0 0.25rem 0 0.5rem; line-height:1;" ' +
           'title="Delete">&times;</span>' +
@@ -708,7 +737,7 @@ body {
     });
 
     if (tvUrls.length === 0) {
-      html += '<div style="padding:0.5rem 0.75rem; font-size:0.8rem; color:#888; text-align:center;">No saved URLs. Click + to add one.</div>';
+      html += '<div style="padding:0.5rem 0.75rem; font-size:0.8rem; color:#888; text-align:center;">No items. Click + to add one.</div>';
     }
 
     menu.innerHTML = html;
@@ -725,15 +754,34 @@ body {
     document.getElementById('tvDropdownLabel').textContent = tvUrls[index].name || 'Page ' + (index + 1);
     closeDropdown();
 
+    var itemUrl = tvUrls[index].url;
+
+    // For local files (PDFs, images), display directly in bounce page
+    // For external URLs, use the bounce page as before
     var bounceUrl = (window.location.origin || '') + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'tv-bounce.html';
     var returnUrl = window.location.href.split('#')[0];
-    bounceUrl += '#url=' + encodeURIComponent(tvUrls[index].url) + '&mode=manual&return=' + encodeURIComponent(returnUrl);
+
+    // For local files, build full URL
+    if (itemUrl.startsWith('/uploads/')) {
+      itemUrl = (window.location.origin || '') + itemUrl;
+    }
+
+    bounceUrl += '#url=' + encodeURIComponent(itemUrl) + '&mode=manual&return=' + encodeURIComponent(returnUrl);
     window.location.href = bounceUrl;
   };
 
   window.tvDeleteUrl = async function(index) {
     if (!tvUrls[index]) return;
     if (!confirm('Remove "' + (tvUrls[index].name || tvUrls[index].url) + '"?')) return;
+
+    // If it's an uploaded file, delete it from the server too
+    if (tvUrls[index].type === 'file' && tvUrls[index].url) {
+      var fileName = tvUrls[index].url.replace('/uploads/', '');
+      try {
+        await fetch('/api/upload/' + encodeURIComponent(fileName), { method: 'DELETE' });
+      } catch(e) { console.warn('Failed to delete file:', e); }
+    }
+
     tvUrls.splice(index, 1);
     await saveUrls();
     renderDropdownMenu();
@@ -742,8 +790,12 @@ body {
   function openAddModal() {
     document.getElementById('tvNewUrlName').value = '';
     document.getElementById('tvNewUrlInput').value = '';
+    document.getElementById('tvFileDisplayName').value = '';
+    document.getElementById('tvFileInput').value = '';
+    document.getElementById('tvUploadProgress').style.display = 'none';
     var hint = document.getElementById('tvNewUrlHint');
     if (hint) hint.textContent = '';
+    tvShowTab('link');
     closeDropdown();
 
     if (typeof openModal === 'function') openModal('tvAddUrlModal');
@@ -755,18 +807,61 @@ body {
     else document.getElementById('tvAddUrlModal').style.display = 'none';
   }
 
-  async function saveNewUrl() {
-    var nameInput = document.getElementById('tvNewUrlName');
-    var urlInput = document.getElementById('tvNewUrlInput');
-    var name = (nameInput.value || '').trim();
-    var url = extractUrl(urlInput.value);
+  async function saveItem() {
+    if (currentTab === 'link') {
+      // Save a URL
+      var nameInput = document.getElementById('tvNewUrlName');
+      var urlInput = document.getElementById('tvNewUrlInput');
+      var name = (nameInput.value || '').trim();
+      var url = extractUrl(urlInput.value);
 
-    if (!url) { alert('Please enter a URL.'); return; }
-    if (!name) { alert('Please enter a display name.'); return; }
+      if (!url) { alert('Please enter a URL.'); return; }
+      if (!name) { alert('Please enter a display name.'); return; }
 
-    tvUrls.push({ name: name, url: url });
-    await saveUrls();
-    closeAddModal();
+      tvUrls.push({ name: name, url: url, type: 'link' });
+      await saveUrls();
+      closeAddModal();
+
+    } else {
+      // Upload a file
+      var nameInput = document.getElementById('tvFileDisplayName');
+      var fileInput = document.getElementById('tvFileInput');
+      var name = (nameInput.value || '').trim();
+
+      if (!fileInput.files || !fileInput.files[0]) { alert('Please select a file.'); return; }
+      if (!name) { alert('Please enter a display name.'); return; }
+
+      var formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('name', name);
+
+      document.getElementById('tvUploadProgress').style.display = 'block';
+      document.getElementById('tvUploadProgress').textContent = 'Uploading & converting...';
+
+      try {
+        var res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          var err = await res.json();
+          alert('Upload failed: ' + (err.error || 'Unknown error'));
+          document.getElementById('tvUploadProgress').style.display = 'none';
+          return;
+        }
+
+        var result = await res.json();
+        // Reload URLs from server (upload endpoint adds it automatically)
+        await loadUrls();
+        document.getElementById('tvUploadProgress').style.display = 'none';
+        closeAddModal();
+
+      } catch(e) {
+        alert('Upload failed: ' + e.message);
+        document.getElementById('tvUploadProgress').style.display = 'none';
+      }
+    }
   }
 
   // Wire up
@@ -790,7 +885,7 @@ body {
     if (btnAdd) btnAdd.onclick = openAddModal;
 
     var btnSave = document.getElementById('btnTVSaveUrl');
-    if (btnSave) btnSave.onclick = saveNewUrl;
+    if (btnSave) btnSave.onclick = saveItem;
 
     var btnCancel = document.getElementById('btnTVCancelUrl');
     if (btnCancel) btnCancel.onclick = closeAddModal;
